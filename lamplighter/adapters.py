@@ -1,9 +1,4 @@
-from typing import List, Tuple
-
-from .core import State
-
-
-def export_dot(V: List[State], E: List[Tuple[int, int, int]], dist: List[int], labels: List[str], path: str) -> None:
+def export_dot(V, E, dist, labels, path):
     """Write a DOT file with simple record node labels."""
     def _escape_label(s: str) -> str:
         return s.replace('"', '\\"')
@@ -24,7 +19,7 @@ def export_dot(V: List[State], E: List[Tuple[int, int, int]], dist: List[int], l
 
 
 
-def to_networkx(V: List[State], E: List[Tuple[int, int, int]], dist: List[int], labels: List[str]):
+def to_networkx(V, E, dist, labels):
     try:
         import networkx as nx
     except Exception as e:
@@ -37,7 +32,7 @@ def to_networkx(V: List[State], E: List[Tuple[int, int, int]], dist: List[int], 
     return G
 
 
-def draw_png(V: List[State], E: List[Tuple[int, int, int]], dist: List[int], labels: List[str], path_png: str):
+def draw_png(V, E, dist, labels, path_png):
     try:
         import networkx as nx
         import matplotlib.pyplot as plt

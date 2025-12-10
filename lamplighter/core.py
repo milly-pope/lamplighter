@@ -4,6 +4,7 @@
 # GenSpec: Dict[str, Any]
 # Gens: List[GenSpec]
 import collections
+from copy import deepcopy
 
 
 def make_modulus_func(block_pattern):
@@ -38,7 +39,7 @@ def encode_state(p, tape, modulus_at):
         if vv != 0:  # if not 0, i.e lamp is on
             out.append((int(i), int(vv)))  # add to output
     out.sort()  # sort by index for normal form
-    return p, out
+    return p, tuple(out)
 
 
 def apply_primitive(prim, p, tape, modulus_at):
@@ -53,12 +54,12 @@ def apply_primitive(prim, p, tape, modulus_at):
         return p + k, tape
     if 'toggle' in prim:
         t = prim['toggle']
-        offset = int(t.get('offset', 0))
-        delta = int(t.get('delta', 1))
-        idx = p + offset
+        offset = int(t['offset'])
+        delta = int(t['delta'])
+        idx = p + offset # index to toggle
         m = modulus_at(idx)
-        newt = dict(tape)
-        cur = newt.get(idx, 0)
+        newt = deepcopy(tape) # deep copy for safety
+        cur = newt.get(idx, 0) # get current value at index, 0 if not present
         nv = (int(cur) + int(delta)) % m
         if nv == 0:
             if idx in newt:
@@ -66,7 +67,7 @@ def apply_primitive(prim, p, tape, modulus_at):
         else:
             newt[idx] = nv
         return p, newt
-    raise ValueError(f"Unknown primitive: {prim}")
+    
 
 
 def apply_word(word, p, tape, modulus_at):

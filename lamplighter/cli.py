@@ -1,20 +1,18 @@
 import argparse
-import json
 import sys
-from typing import List
-
-from .core import build_ball, m_at_factory
+from .core import build_ball, make_modulus_func
 from .adapters import export_dot, draw_png
 
 
-def parse_pattern(s: str) -> List[int]:
-    parts = [p.strip() for p in s.split(',') if p.strip()]
+def parse_pattern(s):
+    # Takes i.e '2,4' and returns [2,4] 
+    parts = [p.strip() for p in s.split(',')]
     return [int(x) for x in parts]
 
 
-def char_to_primitive(ch: str, step: int, block_size: int) -> List[dict]:
-    # returns a single-primitive list for character
-    # 't' and 'T' are reserved as the step move of size `step` (block size)
+def char_to_primitive(ch, step, pattern):
+    # Returns single-primitive list for character
+    # 't' and 'T' are always expected as the step size i.e block size
     if ch == 't':
         return [{'move': step}]
     if ch == 'T':
@@ -23,43 +21,38 @@ def char_to_primitive(ch: str, step: int, block_size: int) -> List[dict]:
     if ch.isalpha():
         lower = ch.lower()
         offset = ord(lower) - ord('a')
-        if offset < 0 or offset >= block_size:
-            raise ValueError(f"Toggle '{ch}' out of range for block size {block_size}")
+        if offset < 0 or offset >= len(pattern):
+            raise ValueError(f"Toggle '{ch}' out of range for block size {len(pattern)}")
+        modulus = pattern[offset]
         if 'a' <= ch <= 'z':
             return [{'toggle': {'offset': offset, 'delta': 1}}]
         else:
+            # Uppercase = inverse toggle (delta -1)
+            if modulus == 2:
+                raise ValueError(f"Toggle '{ch}' uppercase not needed for mod 2 at offset {offset} (self-inverse)")
             return [{'toggle': {'offset': offset, 'delta': -1}}]
     raise ValueError(f"Unknown macro character: {ch}")
 
 
-def parse_gens_shorthand(spec: str, step: int, block_size: int) -> List[dict]:
+def build_generator_spec(spec, step, pattern):
+    # Parse shorthand generator spec to list of GenSpec dicts
+    # Take user input like 'a,t,T' and return list of GenSpec
     gens = []
     for token in [t.strip() for t in spec.split(',') if t.strip()]:
         word = []
         # token like 'att' => sequence of chars
         for ch in token:
-            prims = char_to_primitive(ch, step, block_size)
+            prims = char_to_primitive(ch, step, pattern)
             word.extend(prims)
         gens.append({'name': token, 'word': word})
     return gens
 
 
-def load_gens_file(path: str):
-    with open(path, 'r', encoding='utf8') as f:
-        data = json.load(f)
-    # basic validation
-    gens = []
-    for g in data:
-        gens.append({'name': g['name'], 'word': g['word']})
-    return gens
-
-
-def main(argv: List[str] = None):
+def main(argv=None):
     p = argparse.ArgumentParser(prog="lamplighter")
     p.add_argument('--n', required=True, type=int, help='radius')
     p.add_argument('--pattern', default='2', help='comma-separated block pattern, e.g. 2,4')
-    p.add_argument('--gens', default=None, help='comma-separated gens shorthand, e.g. a,t,T')
-    p.add_argument('--gens-file', default=None, help='JSON file with full gens spec')
+    p.add_argument('--gens', required=True, help='comma-separated gens shorthand, e.g. a,t,T')
     p.add_argument('--dot', default=None, help='DOT output path (default ball{n}.dot)')
     p.add_argument('--png', default=None, help='PNG output path (default ball{n}.png)')
     p.add_argument('--self-test', action='store_true', help='run internal tests')
@@ -73,14 +66,8 @@ def main(argv: List[str] = None):
         return
 
     pattern = parse_pattern(args.pattern)
-    block_size = len(pattern)
-    step = block_size
-    if args.gens_file:
-        gens = load_gens_file(args.gens_file)
-    else:
-        if not args.gens:
-            p.error('either --gens-file or --gens must be provided')
-        gens = parse_gens_shorthand(args.gens, step, block_size)
+    step = len(pattern)
+    gens = build_generator_spec(args.gens, step, pattern)
 
     # By design, the CLI expects the user to provide any formal inverses
     # explicitly (e.g., 't' and 'T'). We do not auto-symmetrize.
@@ -93,21 +80,8 @@ def main(argv: List[str] = None):
     for i, d in enumerate(dist):
         layers.setdefault(d, []).append(i)
 
-    use_color = False
-    try:
-        use_color = sys.stdout.isatty()
-    except Exception:
-        use_color = False
-
-    # simple ANSI color palette
-    colors = ["\033[95m", "\033[94m", "\033[92m", "\033[93m", "\033[91m"]
-    reset = "\033[0m"
-
     for d in sorted(layers.keys()):
-        header = f"Layer {d} (dist={d}):"
-        if use_color:
-            header = colors[d % len(colors)] + header + reset
-        print('\n' + header)
+        print(f'\nLayer {d} (dist={d}):')
         for vid in layers[d]:
             p_, tape = V[vid]
             tape_str = '{' + ', '.join(f'{idx}:{val}' for idx, val in tape) + '}' if tape else '{}'
