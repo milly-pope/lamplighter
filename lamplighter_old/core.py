@@ -108,6 +108,7 @@ def build_ball(radius, gens, block_pattern=[2]):
     V = []  # List[State]  # state of form (p, tape) where tape is sorted tuple
     E = []  # List[Tuple[int,int,int]]  # edges of form (u,v,gi)
     dist_list = []  # List[int]  # distance from root for each vertex where index is vid
+    words = []  # List[str]  # word (generator sequence) leading to each vertex
 
     visited = {}  # Dict[State,int]
 
@@ -118,7 +119,8 @@ def build_ball(radius, gens, block_pattern=[2]):
     vid = 0
     visited[root_state] = vid
     V.append(root_state)
-    dist_list.append(0) 
+    dist_list.append(0)
+    words.append('e')  # identity element
     q.append(vid)
 
     while q:
@@ -138,9 +140,13 @@ def build_ball(radius, gens, block_pattern=[2]):
                 visited[child_state] = vid_new
                 V.append(child_state)
                 dist_list.append(du + 1)
+                # Build word for new vertex: parent_word + generator_name
+                parent_word = words[u]
+                new_word = parent_word + labels[gi] if parent_word != 'e' else labels[gi]
+                words.append(new_word)
                 q.append(vid_new)
             else:
                 vid_new = visited[child_state] #we have seen it to get the vid of already seen and set it to this so the vertext which we ALWAYS append gets sent to already seen state
             E.append((u, vid_new, gi))
 
-    return V, E, dist_list, labels
+    return V, E, dist_list, labels, words

@@ -1,6 +1,6 @@
-def export_dot(V, E, dist, labels, path):
+def export_dot(V, E, dist, labels, words, path):
     """Write a DOT file with simple record node labels."""
-    def _escape_label(s: str) -> str:
+    def _escape_label(s):
         return s.replace('"', '\\"')
 
     lines = []
@@ -19,7 +19,7 @@ def export_dot(V, E, dist, labels, path):
 
 
 
-def to_networkx(V, E, dist, labels):
+def to_networkx(V, E, dist, labels, words):
     try:
         import networkx as nx
     except Exception as e:
@@ -32,13 +32,13 @@ def to_networkx(V, E, dist, labels):
     return G
 
 
-def draw_png(V, E, dist, labels, path_png):
+def draw_png(V, E, dist, labels, words, path_png):
     try:
         import networkx as nx
         import matplotlib.pyplot as plt
     except Exception as e:
         raise ImportError("networkx and matplotlib are required for draw_png")
-    G = to_networkx(V, E, dist, labels)
+    G = to_networkx(V, E, dist, labels, words)
     pos = {}
     # simple layer layout by dist
     maxd = max(dist) if dist else 0
@@ -51,9 +51,30 @@ def draw_png(V, E, dist, labels, path_png):
         for idx, node in enumerate(nodes):
             pos[node] = (idx - n / 2, -d)
     import matplotlib.pyplot as plt
-    plt.figure(figsize=(8, max(4, maxd)))
-    nx.draw(G, pos, with_labels=True, labels={i: i for i in range(len(V))}, node_size=200)
+    # Scale figure based on graph size
+    width = max(12, len(V) * 0.8)
+    height = max(8, maxd * 3)
+    plt.figure(figsize=(width, height))
+    
+    # Draw nodes with word labels - bigger nodes for readability
+    node_size = max(800, 1500 / (1 + len(V) / 20))  # Scale down for large graphs
+    nx.draw_networkx_nodes(G, pos, node_size=node_size, node_color='lightblue', edgecolors='black', linewidths=2)
+    
+    # Use words as labels instead of vertex IDs
+    word_labels = {i: words[i] for i in range(len(V))}
+    font_size = max(8, 12 - len(V) / 30)  # Scale down font for large graphs
+    nx.draw_networkx_labels(G, pos, labels=word_labels, font_size=font_size, font_weight='bold')
+    
+    # Draw edges with curves to avoid overlap
+    nx.draw_networkx_edges(G, pos, arrows=True, arrowsize=20, 
+                          connectionstyle='arc3,rad=0.1', edge_color='gray', width=1.5, alpha=0.6)
+    
+    # Draw edge labels
     edge_labels = {(u, v): G[u][v]['gen'] for u, v in G.edges()}
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    plt.savefig(path_png)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=font_size-1)
+    
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(path_png, dpi=200, bbox_inches='tight')
     plt.close()
+

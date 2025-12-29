@@ -1,0 +1,211 @@
+def write_png(V, E, dist, labels, words, group, path):
+    """
+    Write PNG using Graphviz for proper edge label positioning.
+    Falls back to matplotlib if Graphviz is not available.
+    """
+    import os
+    import subprocess
+    
+    # First, generate DOT file
+    dot_path = path.replace('.png', '.dot')
+    write_dot(V, E, dist, labels, words, group, dot_path)
+    
+    # Try to use Graphviz to render PNG
+    try:
+        result = subprocess.run(['dot', '-Tpng', dot_path, '-o', path],
+                              capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            return  # Success!
+        else:
+            print(f"Graphviz warning: {result.stderr}")
+            # Fall through to matplotlib
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        print("Graphviz not found, using matplotlib fallback...")
+    
+    # Fallback: use matplotlib
+    try:
+        import networkx as nx
+        import matplotlib.pyplot as plt
+    except ImportError:
+        raise ImportError("Neither Graphviz nor matplotlib available for PNG export")
+    
+    # Build networkx graph
+    G = nx.DiGraph()
+    for i in range(len(V)):
+        G.add_node(i)
+    for u, v, gi in E:
+        G.add_edge(u, v, gen=labels[gi])
+    
+    # Position layout: cartesian for Z², layered for others
+    pos = {}
+    if group.name == "Z^2":
+        # Use actual (x, y) coordinates as position
+        for i in range(len(V)):
+            x, y = V[i]
+            pos[i] = (x, y)
+        # Scale figure based on coordinate range
+        xs = [V[i][0] for i in range(len(V))]
+        ys = [V[i][1] for i in range(len(V))]
+        width = max(8, (max(xs) - min(xs) + 3) * 1.5)
+        height = max(8, (max(ys) - min(ys) + 3) * 1.5)
+    elif group.name == "F_2 (Free Group)":
+        # Cartesian layout: a=right, A=left, b=up, B=down
+        for i in range(len(V)):
+            pos[i] = group.position(V[i])
+        # Scale figure based on coordinate range
+        xs = [pos[i][0] for i in range(len(V))]
+        ys = [pos[i][1] for i in range(len(V))]
+        width = max(8, (max(xs) - min(xs) + 3) * 1.5)
+        height = max(8, (max(ys) - min(ys) + 3) * 1.5)
+    else:
+        # Layer layout by distance
+        maxd = max(dist) if dist else 0
+        layer_counts = {d: [] for d in range(maxd + 1)}
+        for i, d in enumerate(dist):
+            layer_counts[d].append(i)
+        
+        for d in range(maxd + 1):
+            nodes = layer_counts[d]
+            n = len(nodes)
+            for idx, node in enumerate(nodes):
+                pos[node] = (idx - n / 2, -d)
+        
+        # Scale figure
+        width = max(12, len(V) * 0.8)
+        height = max(8, maxd * 3)
+    
+    plt.figure(figsize=(width, height))
+    
+    # Draw nodes
+    node_size = max(800, 1500 / (1 + len(V) / 20))
+    nx.draw_networkx_nodes(G, pos, node_size=node_size, node_color='lightblue', 
+                          edgecolors='black', linewidths=2)
+    
+    # Node labels - use words instead of coordinates
+    node_labels = {i: words[i] for i in range(len(V))}
+    font_size = max(8, 12 - len(V) / 30)
+    nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=font_size, font_weight='bold')
+    
+    # Draw edges with curves
+    # Draw edges with minimal curve
+    nx.draw_networkx_edges(G, pos, arrows=True, arrowsize=12,
+                          connectionstyle='arc3,rad=0.15', edge_color='gray', 
+                          width=1.0, alpha=0.7)
+    
+    # Edge labels - simple, no background
+    edge_labels = {(u, v): G[u][v]['gen'] for u, v in G.edges()}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, 
+                                font_size=max(8, font_size-1))
+    
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(path, dpi=200, bbox_inches='tight')
+    plt.close()
+
+
+def display_graph(V, E, dist, labels, words, group, png_path=None):
+    """
+    Display graph in interactive matplotlib window by loading the Graphviz-rendered PNG.
+    This ensures edge labels are correctly positioned (matplotlib has positioning bugs).
+    
+    Args:
+        png_path: Path to PNG file to display. If None, generates a temporary PNG.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib.image as mpimg
+    except ImportError:
+        raise ImportError("matplotlib required for display")
+    
+    # If no PNG provided, create a temporary one using Graphviz
+    if png_path is None:
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as dot_file:
+            dot_path = dot_file.name
+        png_path = dot_path.replace('.dot', '.png')
+        
+        # Generate DOT and PNG
+        write_dot(V, E, dist, labels, words, group, dot_path)
+        try:
+            import subprocess
+            result = subprocess.run(['dot', '-Tpng', dot_path, '-o', png_path],
+                                  capture_output=True, text=True, timeout=30)
+            if result.returncode != 0:
+                raise RuntimeError(f"Graphviz failed: {result.stderr}")
+        except FileNotFoundError:
+            raise RuntimeError("Graphviz not found - install with 'brew install graphviz'")
+        finally:
+            # Clean up temp DOT file
+            if os.path.exists(dot_path):
+                os.remove(dot_path)
+    
+    # Load and display the PNG
+    img = mpimg.imread(png_path)
+    
+    # Create figure with appropriate size
+    dpi = 80
+    height, width = img.shape[:2]
+    figsize = width / dpi, height / dpi
+    
+    plt.figure(figsize=figsize, dpi=dpi)
+    plt.imshow(img)
+    plt.axis('off')
+    plt.tight_layout(pad=0)
+    plt.show()  # Opens window, blocks until user closes it
+
+
+def write_dot(V, E, dist, labels, words, group, path):
+    """
+    Write Graphviz DOT file with word labels on nodes.
+    """
+    def escape(s):
+        return s.replace('"', '\\"').replace('|', '\\|')
+    
+    lines = []
+    lines.append('digraph G {')
+    
+    # For Cartesian layout (Z^2 and F_2), use neato with fixed positions
+    if group.name == "Z^2":
+        lines.append('  layout=neato;')
+        lines.append('  node [shape=circle, style=filled, fillcolor=lightblue, width=0.35, fixedsize=true, fontsize=9];')
+        lines.append('  edge [fontsize=8, color=gray, arrowsize=0.6];')
+        
+        # Add nodes with positions
+        for i in range(len(V)):
+            label = escape(words[i])
+            x, y = V[i]
+            # Scale positions for better visualization (Graphviz uses inches)
+            px, py = x * 0.8, y * 0.8
+            lines.append(f'  v{i} [label="{label}", pos="{px},{py}!"];')
+    elif group.name == "F_2 (Free Group)":
+        # Cartesian layout: a=right, A=left, b=up, B=down (overlaps allowed)
+        lines.append('  layout=neato;')
+        lines.append('  node [shape=circle, style=filled, fillcolor=lightblue, width=0.35, fixedsize=true, fontsize=9];')
+        lines.append('  edge [fontsize=8, color=gray, arrowsize=0.6];')
+        
+        # Add nodes with fixed Cartesian positions
+        for i in range(len(V)):
+            label = escape(words[i])
+            x, y = group.position(V[i])
+            # Scale positions
+            px, py = x * 0.8, y * 0.8
+            lines.append(f'  v{i} [label="{label}", pos="{px},{py}!"];')
+    else:
+        # Default tree layout
+        lines.append('  rankdir=TB;')
+        lines.append('  node [shape=circle, style=filled, fillcolor=lightblue, width=0.35, fixedsize=true, fontsize=9];')
+        lines.append('  edge [fontsize=8, color=gray, arrowsize=0.6];')
+        
+        for i in range(len(V)):
+            label = escape(words[i])
+            lines.append(f'  v{i} [label="{label}"];')
+    
+    for u, v, gi in E:
+        gen_name = escape(labels[gi])
+        lines.append(f'  v{u} -> v{v} [label="{gen_name}"];')
+    
+    lines.append('}')
+    
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))

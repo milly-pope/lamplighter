@@ -20,7 +20,7 @@ def char_to_primitive(ch, step, pattern):
     # toggles: a->offset0, b->1, c->2, ...; uppercase denotes inverse toggle
     if ch.isalpha():
         lower = ch.lower()
-        offset = ord(lower) - ord('a')
+        offset = ord(lower) - ord('a') #this is the logic that implements required offset for generators
         if offset < 0 or offset >= len(pattern):
             raise ValueError(f"Toggle '{ch}' out of range for block size {len(pattern)}")
         modulus = pattern[offset]
@@ -38,12 +38,12 @@ def build_generator_spec(spec, step, pattern):
     # Parse shorthand generator spec to list of GenSpec dicts
     # Take user input like 'a,t,T' and return list of GenSpec
     gens = []
-    for token in [t.strip() for t in spec.split(',') if t.strip()]:
+    for token in [t.strip() for t in spec.split(',')]:
         word = []
         # token like 'att' => sequence of chars
         for ch in token:
-            prims = char_to_primitive(ch, step, pattern)
-            word.extend(prims)
+            prims = char_to_primitive(ch, step, pattern) # returns list with one primitive
+            word.extend(prims) # had to use so we dont nest lists
         gens.append({'name': token, 'word': word})
     return gens
 
@@ -58,27 +58,21 @@ def main(argv=None):
     p.add_argument('--self-test', action='store_true', help='run internal tests')
     args = p.parse_args(argv)
 
-    if args.self_test:
-        # run tests module
-        import importlib
-        t = importlib.import_module('lamplighter.tests')
-        t.run_tests()
-        return
 
     pattern = parse_pattern(args.pattern)
     step = len(pattern)
     gens = build_generator_spec(args.gens, step, pattern)
 
-    # By design, the CLI expects the user to provide any formal inverses
-    # explicitly (e.g., 't' and 'T'). We do not auto-symmetrize.
-    V, E, dist, labels = build_ball(args.n, gens, block_pattern=pattern)
+    V, E, dist, labels, words = build_ball(args.n, gens, block_pattern=pattern)
 
-    # Print a clean textual representation grouped by BFS layer
     print(f"Cayley ball radius={args.n}: |V|={len(V)} |E|={len(E)}")
-    # Group vertices by distance
+    # Group vertices by distance, dist is an array where dist[i] is distance of vertex i
     layers = {}
-    for i, d in enumerate(dist):
-        layers.setdefault(d, []).append(i)
+    for i, d in enumerate(dist):  #i is vertex ID, d is distance
+        if d not in layers:
+            layers[d] = []
+        layers[d].append(i)
+    #i.e if dist=[0,1,1,2], layers={0:[0],1:[1,2],2:[3]}
 
     for d in sorted(layers.keys()):
         print(f'\nLayer {d} (dist={d}):')
@@ -88,10 +82,14 @@ def main(argv=None):
             print(f'  {vid}: p={p_}, tape={tape_str}')
 
     print('\nAdjacency:')
-    # adjacency lists
+    # Build adjacency lists: E is [(u, v, gi)...] where u=source, v=target, gi=generator index
     adj = {}
     for (u, v, gi) in E:
-        adj.setdefault(u, []).append((v, labels[gi]))
+        if u not in adj:
+            adj[u] = []
+        adj[u].append((v, labels[gi]))  # store (target, generator_name) pairs
+    # adj = {u: [(v1, gen1), (v2, gen2), ...]} maps each vertex to its outgoing edges
+    
     for u in range(len(V)):
         outs = adj.get(u, [])
         if not outs:
@@ -100,17 +98,20 @@ def main(argv=None):
         outs_str = ', '.join(f"{v}[{lab}]" for v, lab in outs)
         print(f'  {u} -> {outs_str}')
 
+#@ add the verticies to show the words. which would grow quicker if i had i.e c2xc2 vs jusr c2 wth more generators, give option to play around with these things by just asking how many elements
+#£cab use it to answer questions about the growth rate of the group with different generating sets. diameter of finite, how long does that take '''
+   
     # Export DOT and optionally PNG
     dot_path = args.dot or f'ball{args.n}.dot'
     try:
-        export_dot(V, E, dist, labels, dot_path)
+        export_dot(V, E, dist, labels, words, dot_path)
         print(f'Wrote DOT: {dot_path}')
     except Exception as e:
         print('Failed to write DOT:', e)
 
     png_path = args.png or f'ball{args.n}.png'
     try:
-        draw_png(V, E, dist, labels, png_path)
+        draw_png(V, E, dist, labels, words, png_path)
         print(f'Wrote PNG: {png_path}')
     except Exception as e:
         print('Could not create PNG with Python plotting libraries:', e)
