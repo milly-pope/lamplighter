@@ -38,7 +38,7 @@ class FreeGroup:
     """
     Free group F_2 with generators a and b.
     
-    State = tuple of letters in reduced form, e.g., ('a', 'b', 'A', 'b')
+    State = tuple of letters in fully reduced form (no adjacent inverses)
     Identity = ()
     
     Generators: a, b, A (a^-1), B (b^-1)
@@ -66,27 +66,6 @@ class FreeGroup:
         if not s:
             return "e"
         return "".join(s)
-    
-    def position(self, s):
-        """
-        Compute 2D position for Cartesian-like layout.
-        a=right, A=left, b=up, B=down
-        
-        Note: Free group is a tree, so some words will have the same
-        position (e.g., ab and ba both at (1,1)). The visualization
-        will need to handle overlaps.
-        """
-        x, y = 0, 0
-        for letter in s:
-            if letter == 'a':
-                x += 1
-            elif letter == 'A':
-                x -= 1
-            elif letter == 'b':
-                y += 1
-            elif letter == 'B':
-                y -= 1
-        return (x, y)
 
 
 # Register this group

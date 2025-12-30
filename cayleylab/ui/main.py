@@ -9,7 +9,7 @@ from ..verify.checks import (
 )
 from .screens import (
     numbered_choice, ask_int, ask_list_of_ints,
-    ask_yes_no, ask_filename, ask_choice, print_header
+    ask_yes_no, ask_choice, print_header
 )
 
 
@@ -84,10 +84,7 @@ def build_mode(group):
     print_header(f"{group.name} - Build Ball")
     
     # Parse group-specific options
-    if group.name == "Z^2":
-        configured = group
-        gens = configured.default_generators()
-    elif group.name == "D∞":
+    if group.name in ("Z^2", "D∞", "C₂ ≀ Z²", "F_2 (Free Group)"):
         configured = group
         gens = configured.default_generators()
     elif group.name == "Lamplighter / Wreath":
@@ -164,18 +161,10 @@ def growth_mode(group):
     """Analyze growth rate of Cayley balls."""
     print_header(f"{group.name} - Growth Analysis")
     
-    # Parse group-specific options (same as build_mode)
-    if group.name == "Z^2":
+    # Parse group-specific options
+    if group.name == "Z^2" or group.name == "D∞" or group.name == "C₂ ≀ Z²" or group.name == "F_2 (Free Group)":
         configured = group
         gens = configured.default_generators()
-    elif group.name == "D∞":
-        configured = group
-        gens = configured.default_generators()
-    elif group.name == "Lamplighter":
-        configured = group
-        gens = configured.default_generators()
-        print("\nLamplighter group: (Z/2Z) wr Z")
-        print("Generators: t (step right), T (step left), a (toggle lamp)")
     elif group.name == "Lamplighter / Wreath":
         pattern = ask_list_of_ints("Block pattern (comma-separated ints)", default=[2])
         step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
@@ -189,9 +178,6 @@ def growth_mode(group):
             "step_mode": step_mode,
             "offsets": offsets
         })
-        gens = configured.default_generators()
-    elif group.name == "F_2 (Free Group)":
-        configured = group
         gens = configured.default_generators()
     else:
         configured = group
@@ -258,6 +244,39 @@ def evaluate_mode(group):
     
     print(f"\nResult: {configured.pretty(state)}")
     print(f"Raw: {state}")
+    
+    # Find geodesic distance and shortest word
+    if state == configured.identity():
+        print(f"\nGeodesic distance: 0 (this is the identity)")
+        if word_str:
+            print(f"Your word length: {len(tokens)} (not optimal - reduces to identity)")
+    else:
+        # Run BFS to find this element
+        print("\nSearching for shortest path...")
+        max_search = 50  # reasonable limit
+        found = False
+        
+        for r in range(1, max_search + 1):
+            V, E, dist, words, edges_list = build_ball(configured, gens, r)
+            if state in V:
+                found = True
+                geodesic_dist = dist[state]
+                shortest_word = words[state]
+                
+                print(f"\nGeodesic distance: {geodesic_dist}")
+                print(f"Shortest word: {' '.join(shortest_word)}")
+                
+                input_length = len(tokens) if word_str else 0
+                if input_length == geodesic_dist:
+                    print(f"Your word length: {input_length} ✓ (optimal!)")
+                elif input_length > geodesic_dist:
+                    print(f"Your word length: {input_length} (not optimal - can be shortened)")
+                
+                break
+        
+        if not found:
+            print(f"\nElement not found within radius {max_search}")
+            print("(Either very far from identity, or search limit too small)")
     
     input("\nPress Enter to continue...")
 

@@ -1,5 +1,4 @@
 from typing import Dict, Any, List, Tuple
-from copy import deepcopy
 from ..core.types import Group, Gen, State
 
 

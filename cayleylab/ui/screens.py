@@ -1,6 +1,3 @@
-import sys
-
-
 def numbered_choice(prompt, choices):
     """
     Display numbered choices and return the selected index.
@@ -73,12 +70,6 @@ def ask_yes_no(prompt, default=True):
         if resp in ('n', 'no'):
             return False
         print("Please enter y or n.")
-
-
-def ask_filename(prompt, default):
-    """Ask for a filename with default."""
-    resp = input(f"{prompt} [{default}]: ").strip()
-    return resp if resp else default
 
 
 def ask_choice(prompt, choices, default=None):
