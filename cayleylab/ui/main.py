@@ -47,10 +47,22 @@ def group_menu(group):
             "D∞ = Z ⋊ Z/2 with generators r, R, s.",
             "State = (k, eps). Every element is r^m or r^m s."
         ],
-        "Lamplighter / Wreath": [
+        "Lamplighter": [
+            "Lamplighter group over Z.",
             "State = (p, tape). pattern=[m0,...,m_{B-1}].",
             "Step mode = unit (±1) or block (±B).",
             "Toggles a,b,c act at offsets 0,1,2; uppercase are inverse toggles at mod>2 sites."
+        ],
+        "Wreath": [
+            "Wreath product C ≀ D = C^(D) ⋊ D with finite support.",
+            "Supported: Z, Z/n, Z2, D∞, Dn(n), Free(k), abelian([m1,...]).",
+            "State = (d, tape) where d ∈ D and tape: D → C with finite support.",
+            "",
+            "Generator conventions:",
+            "  Cyclic (Z, Z/n): t, T for moves | a, A, b, ... for toggles",
+            "  Grid (Z²): x, X, y, Y for moves | a, A, b, B for toggles",
+            "  Dihedral (D∞, Dn): r, R, s for moves | a, A, b for toggles",
+            "  Free(k): a, A, b, B, ... for moves | a, A, b, B, ... for toggles"
         ]
     }
     
@@ -61,12 +73,13 @@ def group_menu(group):
             "Build a radius-n ball (PNG/DOT export)",
             "Analyze growth rate",
             "Evaluate a word",
+            "Find dead-end elements",
             "Verify (quick checks)",
             "Back"
         ]
         
         idx = numbered_choice("Select a mode:", modes)
-        if idx is None or idx == 4:  # Quit or Back
+        if idx is None or idx == 5:  # Quit or Back
             return
         
         if idx == 0:
@@ -76,6 +89,8 @@ def group_menu(group):
         elif idx == 2:
             evaluate_mode(group)
         elif idx == 3:
+            dead_end_mode(group)
+        elif idx == 4:
             verify_mode(group)
 
 
@@ -87,7 +102,7 @@ def build_mode(group):
     if group.name in ("Z^2", "D∞", "C₂ ≀ Z²", "F_2 (Free Group)"):
         configured = group
         gens = configured.default_generators()
-    elif group.name == "Lamplighter / Wreath":
+    elif group.name == "Lamplighter":
         pattern = ask_list_of_ints("Block pattern (comma-separated ints)", default=[2])
         step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
         max_offset = len(pattern) - 1
@@ -101,6 +116,47 @@ def build_mode(group):
             "pattern": pattern,
             "step_mode": step_mode,
             "offsets": offsets
+        })
+        gens = configured.default_generators()
+    elif group.name == "Wreath":
+        print("\nWreath product C ≀ D = C^(D) ⋊ D with finite support")
+        print("Supported: Z, Z/n, Z2, D∞, Dn(n), Free(k), abelian([m1,...])")
+        print("Examples: 'Z/5 wr Z', 'abelian([2,4]) wr Z2', 'Free(3) wr Dn(8)'")
+        
+        spec = input("\nEnter spec (C wr D): ").strip()
+        if not spec:
+            spec = "Z/2 wr Z"
+        
+        # Parse to get top adapter for offset examples
+        from ..groups.wreath_adapters_top import get_top_adapter
+        from ..groups.wreath_adapters_base import get_base_adapter
+        
+        if " wr " in spec:
+            _, top_spec = spec.split(" wr ", 1)
+            top_adapter = get_top_adapter(top_spec.strip())
+            
+            # Show examples for offsets
+            examples = {
+                "Z": "e, t, T",
+                "Z2": "e, x, y, x x",
+                "Zmod": "e, t, t t",
+                "Dinf": "e, r, s",
+                "Dn": "e, r, s",
+                "Free": "e, a, b, a b"
+            }
+            example = examples.get(top_adapter.name, "e")
+            print(f"Offset examples for {top_adapter.name}: {example}")
+        
+        offsets_input = input(f"Offsets (space-separated words, default 'e'): ").strip()
+        if not offsets_input:
+            offset_list = ["e"]
+        else:
+            offset_list = offsets_input.split(',')
+            offset_list = [o.strip() for o in offset_list]
+        
+        configured = group.parse_options({
+            "spec": spec,
+            "offsets": offset_list
         })
         gens = configured.default_generators()
     else:
@@ -131,7 +187,7 @@ def build_mode(group):
     
     # Auto-generate filename
     group_short = group.name.replace(' ', '_').replace('∞', 'inf').replace('/', '_').lower()
-    if group.name == "Lamplighter / Wreath":
+    if group.name == "Lamplighter":
         pattern_str = "_".join(map(str, configured.pattern))
         mode_str = configured.step_mode[0]  # 'u' or 'b'
         offset_str = "".join(chr(ord('a') + o) for o in configured.offsets)
@@ -162,10 +218,27 @@ def growth_mode(group):
     print_header(f"{group.name} - Growth Analysis")
     
     # Parse group-specific options
-    if group.name == "Z^2" or group.name == "D∞" or group.name == "C₂ ≀ Z²" or group.name == "F_2 (Free Group)":
+    if group.name in ("Z^2", "D∞", "C₂ ≀ Z²", "F_2 (Free Group)"):
         configured = group
         gens = configured.default_generators()
-    elif group.name == "Lamplighter / Wreath":
+    elif group.name == "Wreath":
+        print("\nWreath product C ≀ D")
+        spec = input("Enter spec (C wr D): ").strip()
+        if not spec:
+            spec = "Z/2 wr Z"
+        
+        offsets_input = input("Offsets (comma-separated words, default 'e'): ").strip()
+        if not offsets_input:
+            offset_list = ["e"]
+        else:
+            offset_list = [o.strip() for o in offsets_input.split(',')]
+        
+        configured = group.parse_options({
+            "spec": spec,
+            "offsets": offset_list
+        })
+        gens = configured.default_generators()
+    elif group.name == "Lamplighter":
         pattern = ask_list_of_ints("Block pattern (comma-separated ints)", default=[2])
         step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
         max_offset = len(pattern) - 1
@@ -206,7 +279,7 @@ def evaluate_mode(group):
     print_header(f"{group.name} - Evaluate Word")
     
     # Get configured group and generators
-    if group.name == "Lamplighter / Wreath":
+    if group.name == "Lamplighter":
         pattern = ask_list_of_ints("Block pattern", default=[2])
         step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
         offsets = ask_list_of_ints("Toggle offsets", default=[0])
@@ -216,6 +289,18 @@ def evaluate_mode(group):
             "pattern": pattern,
             "step_mode": step_mode,
             "offsets": offsets
+        })
+    elif group.name == "Wreath":
+        spec = input("Enter spec (C wr D): ").strip()
+        if not spec:
+            spec = "Z/2 wr Z"
+        
+        offsets_input = input("Offsets (comma-separated, default 'e'): ").strip()
+        offset_list = [o.strip() for o in offsets_input.split(',')] if offsets_input else ["e"]
+        
+        configured = group.parse_options({
+            "spec": spec,
+            "offsets": offset_list
         })
     else:
         configured = group
@@ -277,6 +362,75 @@ def evaluate_mode(group):
         if not found:
             print(f"\nElement not found within radius {max_search}")
             print("(Either very far from identity, or search limit too small)")
+    
+    input("\nPress Enter to continue...")
+
+
+def dead_end_mode(group):
+    """Find dead-end elements on a sphere."""
+    print_header(f"{group.name} - Find Dead-End Elements")
+    
+    # Print blurb
+    print("\nDead-end elements relative to the current generator set S:")
+    print("v at distance R is a dead end if no one-step move increases distance (|v s| ≤ |v| for all s ∈ S).")
+    print("Depth(v) is the smallest k ≥ 1 with a length-k word that exits B_R.")
+    print("We build to radius R + depth_cap to certify detection and depth.")
+    
+    # Get configured group and generators
+    if group.name == "Lamplighter":
+        pattern = ask_list_of_ints("Block pattern", default=[2])
+        step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
+        offsets = ask_list_of_ints("Toggle offsets", default=[0])
+        offsets = [o for o in offsets if 0 <= o < len(pattern)]
+        
+        configured = group.parse_options({
+            "pattern": pattern,
+            "step_mode": step_mode,
+            "offsets": offsets
+        })
+    elif group.name == "Wreath":
+        spec = input("Enter spec (C wr D): ").strip()
+        if not spec:
+            spec = "Z/2 wr Z"
+        
+        offsets_input = input("Offsets (comma-separated, default 'e'): ").strip()
+        offset_list = [o.strip() for o in offsets_input.split(',')] if offsets_input else ["e"]
+        
+        configured = group.parse_options({
+            "spec": spec,
+            "offsets": offset_list
+        })
+    else:
+        configured = group
+    
+    gens = configured.default_generators()
+    gen_names = [g.name for g in gens]
+    labels = gen_names
+    
+    print(f"\nGenerators: {', '.join(gen_names)}")
+    
+    # Ask for parameters
+    R = ask_int("Radius R to analyze", default=7)
+    depth_cap = ask_int("Depth cap (max search depth)", default=6)
+    max_examples = ask_int("How many examples to show (0 = all)", default=10)
+    
+    # Run analysis
+    from ..core.bfs import build_ball
+    
+    if group.name == "Lamplighter":
+        from ..groups.lamplighter import run_dead_end_mode_lamplighter
+        results = run_dead_end_mode_lamplighter(configured, gens, labels, R, depth_cap, build_ball)
+    elif group.name == "Wreath":
+        from ..groups.wreath import run_dead_end_mode_wreath
+        results = run_dead_end_mode_wreath(configured, gens, labels, R, depth_cap, build_ball)
+    else:
+        print("Dead-end detection not yet implemented for this group.")
+        input("\nPress Enter to continue...")
+        return
+    
+    # Print results
+    from ..features.deadends import print_dead_end_results
+    print_dead_end_results(results, max_examples)
     
     input("\nPress Enter to continue...")
 

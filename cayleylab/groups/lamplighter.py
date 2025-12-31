@@ -71,14 +71,14 @@ class Step:
 
 class Lamplighter:
     """
-    Lamplighter / Wreath product group.
+    Lamplighter group over Z.
     State = (p, tape) where tape is canonical tuple of (i, val) pairs.
     Options:
       - pattern: list of moduli [m0, m1, ...]
       - step_mode: "unit" (step ±1) or "block" (step ±len(pattern))
       - offsets: list of offsets for toggles [0,1,2] -> a,b,c
     """
-    name = "Lamplighter / Wreath"
+    name = "Lamplighter"
     
     def __init__(self, pattern=None, step_mode="unit", offsets=None):
         self.pattern = pattern or [2]
@@ -131,3 +131,35 @@ class Lamplighter:
 # Register this group
 from .base import register
 register(Lamplighter())
+
+
+def run_dead_end_mode_lamplighter(group, gens, labels, R, depth_cap, bfs_build):
+    """
+    Find dead-end elements on layer R for the lamplighter group.
+    
+    Builds to R + depth_cap, analyzes dead ends, and prints results.
+    No JSON/PNG artifacts generated.
+    
+    Args:
+        group: Configured lamplighter group instance
+        gens: List of generator objects
+        labels: Generator names
+        R: Target radius to analyze
+        depth_cap: Maximum depth to search for escape paths
+        bfs_build: BFS build function (e.g., build_ball)
+    """
+    from ..features.deadends import analyze_dead_ends, print_dead_end_results
+    
+    # Build ball to R + depth_cap
+    print(f"\nBuilding ball to radius {R + depth_cap}...")
+    V, E, dist, labels_bfs, words = bfs_build(group, gens, R + depth_cap)
+    
+    # Create state → vid mapping
+    visited = {V[i]: i for i in range(len(V))}
+    
+    # Analyze dead ends
+    print(f"Analyzing dead ends on layer {R}...")
+    results = analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited)
+    
+    # Print results
+    return results
