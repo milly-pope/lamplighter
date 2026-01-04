@@ -1,14 +1,11 @@
-"""
-Growth rate analysis for Cayley balls.
-"""
+# Growth rate analysis for Cayley balls
+
 from .bfs import build_ball
 
 
 def compute_growth(group, gens, max_radius):
-    """
-    Compute ball sizes for radii 0..max_radius.
-    Returns list of (radius, |V|, ratio) tuples.
-    """
+    # Compute ball sizes for radii 0..max_radius
+    # Returns list of (radius, |V|, ratio) tuples
     results = []
     prev_size = 0
     
@@ -23,10 +20,8 @@ def compute_growth(group, gens, max_radius):
 
 
 def classify_growth(results):
-    """
-    Classify growth type based on ratios.
-    Returns: ("polynomial", degree) or ("exponential", base) or ("unknown", None)
-    """
+    # Classify growth type based on ratios
+    # Returns: ("polynomial", degree) or ("exponential", base) or ("unknown", None)
     if len(results) < 4:
         return ("unknown", None)
     
@@ -63,9 +58,7 @@ def classify_growth(results):
 
 
 def format_growth_table(results, growth_type):
-    """
-    Format growth results as a table string.
-    """
+    # Format growth results as a table string
     lines = []
     lines.append("\nGrowth Analysis:")
     lines.append("=" * 50)

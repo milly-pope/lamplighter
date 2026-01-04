@@ -1,22 +1,15 @@
-from typing import Dict, Any, List, Tuple
-from ..core.types import Group, Gen, State
-
-
-# State = (p: int, tape: Tuple[(i, val), ...]) -- canonical, hashable
+# State = (p: int, tape: tuple of (i, val) pairs) -- sorted for canonical form
 
 
 def make_modulus_func(pattern):
-    """Create a function that returns the modulus at position i."""
+    # Returns a function that gives the modulus at position i
     def modulus_at(i):
         return pattern[i % len(pattern)]
     return modulus_at
 
 
 def encode_state(p, tape_dict, modulus_at):
-    """
-    Normalize tape and return canonical state (p, tape_tuple).
-    Tape is sorted tuple of (index, residue) pairs with zeros dropped.
-    """
+    # Normalize tape: sorted tuple of (index, residue) pairs, zeros dropped
     out = []
     for i in sorted(tape_dict.keys()):
         v = tape_dict[i]
@@ -28,10 +21,8 @@ def encode_state(p, tape_dict, modulus_at):
 
 
 class Toggle:
-    """Toggle generator: modifies tape at a specific offset."""
+    # Toggle generator: modifies tape at a specific offset
     def __init__(self, name, offset, delta, pattern):
-        self.name = name
-        self.offset = offset
         self.delta = delta
         self.pattern = pattern
         self.modulus_at = make_modulus_func(pattern)
@@ -53,7 +44,7 @@ class Toggle:
 
 
 class Step:
-    """Step generator: moves the head position."""
+    # Step generator: moves the head position
     def __init__(self, name, step_amount, pattern):
         self.name = name
         self.step = step_amount
@@ -70,14 +61,9 @@ class Step:
 
 
 class Lamplighter:
-    """
-    Lamplighter group over Z.
-    State = (p, tape) where tape is canonical tuple of (i, val) pairs.
-    Options:
-      - pattern: list of moduli [m0, m1, ...]
-      - step_mode: "unit" (step ±1) or "block" (step ±len(pattern))
-      - offsets: list of offsets for toggles [0,1,2] -> a,b,c
-    """
+    # Lamplighter group over Z
+    # State = (p, tape) where tape is canonical tuple of (i, val) pairs
+    # Options: pattern (list of moduli), step_mode ("unit" or "block"), offsets (for toggles)
     name = "Lamplighter"
     
     def __init__(self, pattern=None, step_mode="unit", offsets=None):
@@ -133,21 +119,9 @@ from .base import register
 register(Lamplighter())
 
 
-def run_dead_end_mode_lamplighter(group, gens, labels, R, depth_cap, bfs_build):
-    """
-    Find dead-end elements on layer R for the lamplighter group.
-    
-    Builds to R + depth_cap, analyzes dead ends, and prints results.
-    No JSON/PNG artifacts generated.
-    
-    Args:
-        group: Configured lamplighter group instance
-        gens: List of generator objects
-        labels: Generator names
-        R: Target radius to analyze
-        depth_cap: Maximum depth to search for escape paths
-        bfs_build: BFS build function (e.g., build_ball)
-    """
+def dead_end_scan(group, gens, labels, R, depth_cap, bfs_build):
+    # Builds to R + depth_cap, analyzes dead ends, and prints results
+    # No JSON/PNG artifacts generated
     from ..features.deadends import analyze_dead_ends, print_dead_end_results
     
     # Build ball to R + depth_cap

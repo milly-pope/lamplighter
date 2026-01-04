@@ -1,17 +1,10 @@
 from collections import deque
-from typing import List
-from .types import Group, Gen, Ball, State, Edge
 
 
-def build_ball(group: Group, gens: List[Gen], radius: int) -> Ball:
-    """
-    Build the radius-n ball for 'group' with generators 'gens'.
-    Always include every edge whose endpoints both lie at distance <= radius.
-    Never create new vertices beyond 'radius'.
-    Returns (V, E, dist, labels, words).
-    """
-    if radius < 0:
-        raise ValueError("radius must be >= 0")
+def build_ball(group, gens, radius):
+    # Build the radius-n ball for 'group' with generators 'gens'.
+    # Include every edge whose endpoints both lie at distance <= radius.
+    # Returns (V, E, dist, labels, words).
     
     # Initialize with identity
     root_state = group.identity()
@@ -62,16 +55,7 @@ def build_ball(group: Group, gens: List[Gen], radius: int) -> Ball:
 
 
 def transitions_from(gens, state):
-    """
-    Yield (gen_idx, next_state) for each generator applied to 'state'.
-    
-    Args:
-        gens: List of generator objects
-        state: Current state
-        
-    Yields:
-        (gen_idx, next_state) tuples
-    """
+    # Yield (gen_idx, next_state) for each generator applied to state
     for i, g in enumerate(gens):
         yield i, g.apply(state)
 

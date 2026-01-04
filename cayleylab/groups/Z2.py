@@ -1,12 +1,10 @@
-from typing import Tuple, List, Dict, Any
-from ..core.types import Group, Gen, State
 
 
 # State = (x, y) tuple of ints
 
 
 class Move:
-    """A generator that moves in Z^2 by a fixed vector."""
+    # Generator that moves in Z^2 by a fixed vector
     def __init__(self, name, dx, dy):
         self.name = name
         self.dx = dx
@@ -18,7 +16,7 @@ class Move:
 
 
 class Z2:
-    """Z^2 with standard basis generators {x, X, y, Y}."""
+    # Z^2 with standard basis generators {x, X, y, Y}
     name = "Z^2"
     
     def __init__(self, gens=None):

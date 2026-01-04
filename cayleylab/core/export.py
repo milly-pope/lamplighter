@@ -1,8 +1,6 @@
 def write_png(V, E, dist, labels, words, group, path):
-    """
-    Write PNG using Graphviz for proper edge label positioning.
-    Falls back to matplotlib if Graphviz is not available.
-    """
+    # Write PNG using Graphviz for proper edge label positioning
+    # Falls back to matplotlib if Graphviz is not available
     import os
     import subprocess
     
@@ -10,24 +8,14 @@ def write_png(V, E, dist, labels, words, group, path):
     dot_path = path.replace('.png', '.dot')
     write_dot(V, E, dist, labels, words, group, dot_path)
     
-    # Try to use Graphviz to render PNG
-    try:
-        result = subprocess.run(['dot', '-Tpng', dot_path, '-o', path],
-                              capture_output=True, text=True, timeout=30)
-        if result.returncode == 0:
-            return  # Success!
-        else:
-            print(f"Graphviz warning: {result.stderr}")
-            # Fall through to matplotlib
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        print("Graphviz not found, using matplotlib fallback...")
+    # Use Graphviz to render PNG
+    result = subprocess.run(['dot', '-Tpng', dot_path, '-o', path])
+    if result.returncode == 0:
+        return
     
-    # Fallback: use matplotlib
-    try:
-        import networkx as nx
-        import matplotlib.pyplot as plt
-    except ImportError:
-        raise ImportError("Neither Graphviz nor matplotlib available for PNG export")
+    # If that didn't work, try matplotlib
+    import networkx as nx
+    import matplotlib.pyplot as plt
     
     # Build networkx graph
     G = nx.DiGraph()
@@ -94,40 +82,21 @@ def write_png(V, E, dist, labels, words, group, path):
 
 
 def display_graph(V, E, dist, labels, words, group, png_path=None):
-    """
-    Display Graphviz-rendered PNG in matplotlib window.
-    
-    Args:
-        png_path: Path to PNG file to display. If None, generates a temporary PNG.
-    """
-    try:
-        import matplotlib.pyplot as plt
-        import matplotlib.image as mpimg
-    except ImportError:
-        raise ImportError("matplotlib required for display")
+    # Display Graphviz-rendered PNG in matplotlib window
+    # png_path: Path to PNG file to display. If None, generates a temporary PNG.
+    import matplotlib.pyplot as plt
+    import matplotlib.image as mpimg
     
     # If no PNG provided, create a temporary one using Graphviz
     if png_path is None:
         import tempfile
-        import os
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as dot_file:
-            dot_path = dot_file.name
+        import subprocess
+        dot_path = tempfile.mktemp(suffix='.dot')
         png_path = dot_path.replace('.dot', '.png')
         
         # Generate DOT and PNG
         write_dot(V, E, dist, labels, words, group, dot_path)
-        try:
-            import subprocess
-            result = subprocess.run(['dot', '-Tpng', dot_path, '-o', png_path],
-                                  capture_output=True, text=True, timeout=30)
-            if result.returncode != 0:
-                raise RuntimeError(f"Graphviz failed: {result.stderr}")
-        except FileNotFoundError:
-            raise RuntimeError("Graphviz not found - install with 'brew install graphviz'")
-        finally:
-            # Clean up temp DOT file
-            if os.path.exists(dot_path):
-                os.remove(dot_path)
+        subprocess.run(['dot', '-Tpng', dot_path, '-o', png_path])
     
     # Load and display the PNG
     img = mpimg.imread(png_path)
@@ -145,9 +114,7 @@ def display_graph(V, E, dist, labels, words, group, png_path=None):
 
 
 def write_dot(V, E, dist, labels, words, group, path):
-    """
-    Write Graphviz DOT file with word labels on nodes.
-    """
+    # Write Graphviz DOT file with word labels on nodes
     def escape(s):
         return s.replace('"', '\\"').replace('|', '\\|')
     

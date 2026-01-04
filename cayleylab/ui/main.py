@@ -1,12 +1,7 @@
 import sys
-from ..groups.base import all_groups, REGISTRY
+from ..groups.base import all_groups
 from ..core.bfs import build_ball
 from ..core.export import write_dot, write_png, display_graph
-from ..core.growth import compute_growth, classify_growth, format_growth_table
-from ..verify.checks import (
-    check_generic, layer_sizes,
-    check_Z2_counts, check_Dinf_counts, check_L2_counts_small
-)
 from .screens import (
     numbered_choice, ask_int, ask_list_of_ints,
     ask_yes_no, ask_choice, print_header
@@ -14,7 +9,7 @@ from .screens import (
 
 
 def main_menu():
-    """Top-level menu: select a group."""
+    # Top-level menu: select a group
     # Ensure groups are registered
     import cayleylab.groups
     
@@ -36,7 +31,7 @@ def main_menu():
 
 
 def group_menu(group):
-    """Group-specific menu: modes."""
+    # Group-specific menu: modes
     # Show group-specific header
     headers = {
         "Z^2": [
@@ -74,12 +69,11 @@ def group_menu(group):
             "Analyze growth rate",
             "Evaluate a word",
             "Find dead-end elements",
-            "Verify (quick checks)",
             "Back"
         ]
         
         idx = numbered_choice("Select a mode:", modes)
-        if idx is None or idx == 5:  # Quit or Back
+        if idx is None or idx == 4:  # Quit or Back
             return
         
         if idx == 0:
@@ -90,12 +84,10 @@ def group_menu(group):
             evaluate_mode(group)
         elif idx == 3:
             dead_end_mode(group)
-        elif idx == 4:
-            verify_mode(group)
 
 
 def build_mode(group):
-    """Build a radius-n ball and export."""
+    # Build a radius-n ball and export
     print_header(f"{group.name} - Build Ball")
     
     # Parse group-specific options
@@ -214,7 +206,7 @@ def build_mode(group):
 
 
 def growth_mode(group):
-    """Analyze growth rate of Cayley balls."""
+    # Analyze growth rate of Cayley balls
     print_header(f"{group.name} - Growth Analysis")
     
     # Parse group-specific options
@@ -275,7 +267,7 @@ def growth_mode(group):
 
 
 def evaluate_mode(group):
-    """Evaluate a word in the group."""
+    # Evaluate a word in the group
     print_header(f"{group.name} - Evaluate Word")
     
     # Get configured group and generators
@@ -367,7 +359,7 @@ def evaluate_mode(group):
 
 
 def dead_end_mode(group):
-    """Find dead-end elements on a sphere."""
+    # Find dead-end elements on a sphere
     print_header(f"{group.name} - Find Dead-End Elements")
     
     # Print blurb
@@ -435,77 +427,8 @@ def dead_end_mode(group):
     input("\nPress Enter to continue...")
 
 
-def verify_mode(group):
-    """Run verification checks on the group."""
-    print_header(f"{group.name} - Verify")
-    
-    # Get configured group and generators
-    if group.name == "Lamplighter / Wreath":
-        pattern = ask_list_of_ints("Block pattern", default=[2])
-        step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
-        offsets = ask_list_of_ints("Toggle offsets", default=[0])
-        offsets = [o for o in offsets if 0 <= o < len(pattern)]
-        
-        configured = group.parse_options({
-            "pattern": pattern,
-            "step_mode": step_mode,
-            "offsets": offsets
-        })
-    else:
-        configured = group
-    
-    gens = configured.default_generators()
-    
-    # Ask radius
-    radius = ask_int("Radius to test", default=3)
-    
-    # Build ball
-    print(f"\nBuilding ball...")
-    V, E, dist, labels, words = build_ball(configured, gens, radius)
-    
-    # Run generic checks
-    print(f"\nRunning generic checks...")
-    errors = check_generic(V, E, dist)
-    if errors:
-        print("FAIL:")
-        for err in errors:
-            print(f"  - {err}")
-    else:
-        print("PASS: All generic checks passed")
-    
-    # Run family-specific checks
-    print(f"\nRunning {group.name}-specific checks...")
-    if group.name == "Z^2":
-        err = check_Z2_counts(radius, len(V))
-        if err:
-            print(f"FAIL: {err}")
-        else:
-            print(f"PASS: Ball size matches expected 2n(n+1)+1 = {len(V)}")
-    
-    elif group.name == "D∞":
-        err = check_Dinf_counts(radius, len(V))
-        if err:
-            print(f"FAIL: {err}")
-        else:
-            expected = 1 if radius == 0 else 4 * radius
-            print(f"PASS: Ball size matches expected {expected}")
-    
-    elif group.name == "Lamplighter / Wreath":
-        # Check if configuration matches L2 known values
-        if configured.pattern == [2] and configured.step_mode == "unit" and configured.offsets == [0]:
-            err = check_L2_counts_small(radius, len(V))
-            if err:
-                print(f"FAIL: {err}")
-            else:
-                print(f"PASS: L2 ball size matches known value {len(V)}")
-        else:
-            print("No known count formula for this configuration")
-    
-    input("\nPress Enter to continue...")
-
-
 def main():
-    """Entry point for cayleylab."""
+    # Entry point for cayleylab
     try:
         main_menu()
     except KeyboardInterrupt:

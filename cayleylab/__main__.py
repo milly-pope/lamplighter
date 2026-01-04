@@ -1,4 +1,4 @@
-"""Entry point for python -m cayleylab"""
+# Entry point for python -m cayleylab
 
 from cayleylab.ui.main import main
 

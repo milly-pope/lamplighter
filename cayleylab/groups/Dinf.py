@@ -1,12 +1,10 @@
-from typing import Tuple, List, Dict, Any
-from ..core.types import Group, Gen, State
 
 
 # State = (k: int, eps: int in {0, 1})
 
 
 class R:
-    """Rotation generator r: (k, eps) -> (k+1, eps)"""
+    # Rotation generator r: (k, eps) -> (k+1, eps)
     name = "r"
     
     def apply(self, s):
@@ -15,7 +13,7 @@ class R:
 
 
 class Rinv:
-    """Inverse rotation R: (k, eps) -> (k-1, eps)"""
+    # Inverse rotation R: (k, eps) -> (k-1, eps)
     name = "R"
     
     def apply(self, s):
@@ -24,7 +22,7 @@ class Rinv:
 
 
 class S:
-    """Reflection s: (k, eps) -> (-k, 1-eps)"""
+    # Reflection s: (k, eps) -> (-k, 1-eps)
     name = "s"
     
     def apply(self, s):
@@ -33,7 +31,7 @@ class S:
 
 
 class Dinf:
-    """D∞ = Z ⋊ Z/2 with generators r, R, s."""
+    # D∞ = Z ⋊ Z/2 with generators r, R, s
     name = "D∞"
     
     def identity(self):

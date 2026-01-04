@@ -1,1 +1,1 @@
-"""Empty core package init."""
+# Empty core package init

@@ -1,15 +1,11 @@
-from typing import Dict, Any, List, Tuple
-from ..core.types import Group, Gen, State
 
 
 # State = ((x, y): position in Z², tape: tuple of ((i,j), val) pairs)
 
 
 def encode_state(p, tape_dict):
-    """
-    Normalize tape and return canonical state (p, tape_tuple).
-    Tape is sorted tuple of ((x,y), val) pairs with zeros dropped.
-    """
+    # Normalize tape and return canonical state (p, tape_tuple)
+    # Tape is sorted tuple of ((x,y), val) pairs with zeros dropped
     out = []
     for pos in sorted(tape_dict.keys()):
         v = tape_dict[pos]
@@ -19,7 +15,7 @@ def encode_state(p, tape_dict):
 
 
 class Toggle:
-    """Toggle generator: flips lamp at current position + offset."""
+    # Toggle generator: flips lamp at current position + offset
     def __init__(self, name, offset):
         self.name = name
         self.offset = offset  # (dx, dy)
@@ -41,7 +37,7 @@ class Toggle:
 
 
 class Step:
-    """Step generator: moves head position in Z²."""
+    # Step generator: moves head position in Z²
     def __init__(self, name, step):
         self.name = name
         self.step = step  # (dx, dy)
@@ -55,19 +51,9 @@ class Step:
 
 
 class LamplighterZ2:
-    """
-    C₂ ≀ Z² (Lamplighter over Z²)
-    
-    State = ((x,y): head position in Z², tape: sorted tuple of ((i,j), val) pairs)
-    
-    Each position in Z² has a lamp that can be on (1) or off (0).
-    The lamplighter walks on Z² and can toggle lamps.
-    
-    Default generators:
-    - x, X: move right/left (±1 in x direction)
-    - y, Y: move up/down (±1 in y direction)  
-    - a: toggle lamp at current position
-    """
+    # C₂ ℘ Z² (Lamplighter over Z²)
+    # State = ((x,y): head position in Z², tape: sorted tuple of ((i,j), val) pairs)
+    # Default generators: x, X (move right/left), y, Y (move up/down), a (toggle lamp at current position)
     name = "C₂ ≀ Z²"
     
     def __init__(self):

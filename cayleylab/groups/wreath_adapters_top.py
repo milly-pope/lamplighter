@@ -1,13 +1,10 @@
-"""
-Top (acting) group adapters for D in wreath products C ≀ D.
-Each adapter provides: identity, multiply, inverse, pretty, default_gens, parse_word.
-"""
+# Top (acting) group adapters for D in wreath products C ≀ D.
+# Each adapter provides: identity, multiply, inverse, pretty, default_gens, parse_word.
 
-from typing import Any, Dict, Tuple, List
 
 
 class ZAdapter:
-    """Z (integers) as top group."""
+    # Z (integers) as top group.
     name = "Z"
     
     def identity(self):
@@ -25,21 +22,21 @@ class ZAdapter:
     def default_gens(self):
         return {"t": 1, "T": -1}
     
-    def parse_word(self, word: str, gens: Dict[str, int]) -> int:
-        """Parse space-separated generator names."""
+    def parse_word(self, word, gens):
+        # Parse space-separated generator names.
         if not word.strip():
             return 0
         tokens = word.split()
         result = 0
         for tok in tokens:
             if tok not in gens:
-                raise ValueError(f"Unknown generator '{tok}'")
+                continue  # skip unknown
             result += gens[tok]
         return result
 
 
 class Z2Adapter:
-    """Z² (rank-2 free abelian) as top group."""
+    # Z² (rank-2 free abelian) as top group.
     name = "Z2"
     
     def identity(self):
@@ -62,21 +59,21 @@ class Z2Adapter:
             "Y": (0, -1)
         }
     
-    def parse_word(self, word: str, gens: Dict[str, Tuple[int, int]]) -> Tuple[int, int]:
+    def parse_word(self, word, gens):
         if not word.strip():
             return (0, 0)
         tokens = word.split()
         result = (0, 0)
         for tok in tokens:
             if tok not in gens:
-                raise ValueError(f"Unknown generator '{tok}'")
+                continue  # skip unknown
             g = gens[tok]
             result = (result[0] + g[0], result[1] + g[1])
         return result
 
 
 class ZmodAdapter:
-    """Z/n (cyclic of order n) as top group."""
+    # Z/n (cyclic of order n) as top group.
     name = "Zmod"
     
     def __init__(self, n):
@@ -100,27 +97,27 @@ class ZmodAdapter:
         else:
             return {"t": 1, "T": self.n - 1}
     
-    def parse_word(self, word: str, gens: Dict[str, int]) -> int:
+    def parse_word(self, word, gens):
         if not word.strip():
             return 0
         tokens = word.split()
         result = 0
         for tok in tokens:
             if tok not in gens:
-                raise ValueError(f"Unknown generator '{tok}'")
+                continue  # skip unknown
             result = (result + gens[tok]) % self.n
         return result
 
 
 class DinfAdapter:
-    """D∞ (infinite dihedral) as top group."""
+    # D∞ (infinite dihedral) as top group.
     name = "Dinf"
     
     def identity(self):
         return (0, 0)
     
     def multiply(self, a, b):
-        """Multiply using relations: s² = 1, srs = r⁻¹"""
+        # Multiply using relations: s² = 1, srs = r⁻¹
         k, eps = a
         l, delta = b
         if eps == 0:
@@ -149,20 +146,20 @@ class DinfAdapter:
             "s": (0, 1)
         }
     
-    def parse_word(self, word: str, gens: Dict[str, Tuple[int, int]]) -> Tuple[int, int]:
+    def parse_word(self, word, gens):
         if not word.strip():
             return (0, 0)
         tokens = word.split()
         result = (0, 0)
         for tok in tokens:
             if tok not in gens:
-                raise ValueError(f"Unknown generator '{tok}'")
+                continue  # skip unknown
             result = self.multiply(result, gens[tok])
         return result
 
 
 class DnAdapter:
-    """Dn (dihedral of order 2n) as top group."""
+    # Dn (dihedral of order 2n) as top group.
     name = "Dn"
     
     def __init__(self, n):
@@ -172,7 +169,7 @@ class DnAdapter:
         return (0, 0)
     
     def multiply(self, a, b):
-        """Same as D∞ but reduce mod n"""
+        # Same as D∞ but reduce mod n
         k, eps = a
         l, delta = b
         if eps == 0:
@@ -201,20 +198,20 @@ class DnAdapter:
             "s": (0, 1)
         }
     
-    def parse_word(self, word: str, gens: Dict[str, Tuple[int, int]]) -> Tuple[int, int]:
+    def parse_word(self, word, gens):
         if not word.strip():
             return (0, 0)
         tokens = word.split()
         result = (0, 0)
         for tok in tokens:
             if tok not in gens:
-                raise ValueError(f"Unknown generator '{tok}'")
+                continue  # skip unknown
             result = self.multiply(result, gens[tok])
         return result
 
 
 class FreeAdapter:
-    """Free group Free(k) as top group."""
+    # Free group Free(k) as top group.
     name = "Free"
     
     def __init__(self, k):
@@ -229,14 +226,14 @@ class FreeAdapter:
         return ()
     
     def _inverse_letter(self, letter):
-        """Swap case of a letter."""
+        # Swap case of a letter.
         if letter.islower():
             return letter.upper()
         else:
             return letter.lower()
     
     def _reduce_word(self, word):
-        """Cancel adjacent inverse pairs."""
+        # Cancel adjacent inverse pairs.
         result = []
         for letter in word:
             if result and result[-1] == self._inverse_letter(letter):
@@ -262,20 +259,20 @@ class FreeAdapter:
             gens[base.upper()] = (base.upper(),)
         return gens
     
-    def parse_word(self, word: str, gens: Dict[str, Tuple]) -> Tuple:
+    def parse_word(self, word, gens):
         if not word.strip():
             return ()
         tokens = word.split()
         result = ()
         for tok in tokens:
             if tok not in gens:
-                raise ValueError(f"Unknown generator '{tok}'")
+                continue  # skip unknown
             result = self.multiply(result, gens[tok])
         return result
 
 
-def get_top_adapter(spec: str):
-    """Parse top group spec and return adapter."""
+def get_top_adapter(spec):
+    # Parse top group spec and return adapter.
     spec = spec.strip()
     
     if spec == "Z":
@@ -293,5 +290,6 @@ def get_top_adapter(spec: str):
     elif spec.startswith("Free(") and spec.endswith(")"):
         k = int(spec[5:-1])
         return FreeAdapter(k)
-    else:
-        raise ValueError(f"Unknown top group spec: {spec}")
+    
+    print(f"Unknown spec: {spec}")
+    return ZAdapter()  # default

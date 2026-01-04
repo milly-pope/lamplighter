@@ -1,19 +1,13 @@
-"""
-General regular wreath product C ≀ D = C^(D) ⋊ D.
-State = (d, tape) where d ∈ D and tape is finite-support function D → C.
-"""
+# General regular wreath product C ℘ D = C^(D) ⋊ D
+# State = (d, tape) where d ∈ D and tape is finite-support function D → C
 
-from typing import List, Dict, Tuple, Any
-from ..core.types import Group, Gen, State
 from .wreath_adapters_top import get_top_adapter
 from .wreath_adapters_base import get_base_adapter
 
 
 def canonicalize_tape(tape_dict, top_adapter, base_adapter):
-    """
-    Convert tape dict to canonical sorted tuple, dropping identity entries.
-    Returns sorted tuple of ((addr, val), ...) where val ≠ base.one().
-    """
+    # Convert tape dict to canonical sorted tuple, dropping identity entries
+    # Returns sorted tuple of ((addr, val), ...) where val ≠ base.one()
     items = []
     for addr, val in tape_dict.items():
         if not base_adapter.is_one(val):
@@ -32,7 +26,7 @@ def canonicalize_tape(tape_dict, top_adapter, base_adapter):
 
 
 class MoveGen:
-    """Generator that moves in the top group D."""
+    # Generator that moves in the top group D
     def __init__(self, name, d_elem, top_adapter, base_adapter):
         self.name = name
         self.d_elem = d_elem
@@ -48,7 +42,7 @@ class MoveGen:
 
 
 class ToggleGen:
-    """Generator that toggles lamp at offset in D."""
+    # Generator that toggles lamp at offset in D
     def __init__(self, name, offset, increment, top_adapter, base_adapter):
         self.name = name
         self.offset = offset
@@ -79,16 +73,8 @@ class ToggleGen:
 
 
 class WreathProduct:
-    """
-    Regular wreath product C ≀ D with finite support.
-    
-    Configuration via parse_options():
-    {
-        "spec": "C wr D",  # e.g., "Z/5 wr Z2", "Free(3) wr Dn(8)"
-        "top_gens": Optional[List[str]],  # override default top generators
-        "offsets": Optional[List[str]],   # offset words in top group (default ["e"])
-    }
-    """
+    # Regular wreath product C ℘ D with finite support
+    # Configuration via parse_options(): {"spec": "C wr D", "top_gens": [...], "offsets": [...]}
     name = "Wreath"
     
     def __init__(self, base_adapter=None, top_adapter=None, 
@@ -114,7 +100,7 @@ class WreathProduct:
         return (self.top.identity(), ())
     
     def default_generators(self):
-        """Build move + toggle generators."""
+        # Build move + toggle generators
         gens = []
         
         # Move generators from top group
@@ -149,21 +135,12 @@ class WreathProduct:
         
         return gens
     
-    def parse_options(self, opts: Dict) -> 'WreathProduct':
-        """
-        Parse wreath product specification.
-        opts = {
-            "spec": "C wr D",
-            "top_gens": Optional[List[str]],
-            "offsets": Optional[List[str]]
-        }
-        """
+    def parse_options(self, opts):
+        # Parse wreath product specification
+        # opts = {"spec": "C wr D", "top_gens": [...], "offsets": [...]}
         spec = opts.get("spec", "Z/2 wr Z")
         
         # Parse spec: "C wr D"
-        if " wr " not in spec:
-            raise ValueError("Spec must be in format 'C wr D'")
-        
         base_spec, top_spec = spec.split(" wr ", 1)
         base_adapter = get_base_adapter(base_spec.strip())
         top_adapter = get_top_adapter(top_spec.strip())
@@ -195,7 +172,7 @@ class WreathProduct:
         )
     
     def pretty(self, state):
-        """Format state as d=<top> | addr:val; ..."""
+        # Format state as d=<top> | addr:val; ...
         d, tape_tuple = state
         d_str = self.top.pretty(d)
         
@@ -212,7 +189,7 @@ class WreathProduct:
         return f"d={d_str}|{tape_str}"
     
     def get_metadata(self):
-        """Return metadata dict for export."""
+        # Return metadata dict for export
         return {
             "family": "wreath_regular",
             "spec": self.spec_str,
@@ -230,36 +207,4 @@ class WreathProduct:
 # Register the wreath product group
 from ..groups.base import register
 register(WreathProduct())
-
-
-def run_dead_end_mode_wreath(group, gens, labels, R, depth_cap, bfs_build):
-    """
-    Find dead-end elements on layer R for a wreath product.
-    
-    Builds to R + depth_cap, analyzes dead ends, and prints results.
-    No JSON/PNG artifacts generated.
-    
-    Args:
-        group: Configured wreath product instance
-        gens: List of generator objects
-        labels: Generator names
-        R: Target radius to analyze
-        depth_cap: Maximum depth to search for escape paths
-        bfs_build: BFS build function (e.g., build_ball)
-    """
-    from ..features.deadends import analyze_dead_ends, print_dead_end_results
-    
-    # Build ball to R + depth_cap
-    print(f"\nBuilding ball to radius {R + depth_cap}...")
-    V, E, dist, labels_bfs, words = bfs_build(group, gens, R + depth_cap)
-    
-    # Create state → vid mapping
-    visited = {V[i]: i for i in range(len(V))}
-    
-    # Analyze dead ends
-    print(f"Analyzing dead ends on layer {R}...")
-    results = analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited)
-    
-    # Print results
-    return results
 

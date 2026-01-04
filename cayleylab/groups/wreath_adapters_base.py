@@ -1,13 +1,10 @@
-"""
-Base (lamp) group adapters for C in wreath products C ≀ D.
-Each adapter provides: one, is_one, multiply, inverse, pretty, default_increments.
-"""
+# Base (lamp) group adapters for C in wreath products C ≀ D.
+# Each adapter provides: one, is_one, multiply, inverse, pretty, default_increments.
 
-from typing import Any, Dict, Tuple, List
 
 
 class ZBaseAdapter:
-    """Z (integers) as base group."""
+    # Z (integers) as base group.
     name = "Z"
     
     def one(self):
@@ -30,7 +27,7 @@ class ZBaseAdapter:
 
 
 class ZmodBaseAdapter:
-    """Z/n (cyclic) as base group."""
+    # Z/n (cyclic) as base group.
     name = "Zmod"
     
     def __init__(self, n):
@@ -59,7 +56,7 @@ class ZmodBaseAdapter:
 
 
 class Z2BaseAdapter:
-    """Z² (rank-2 free abelian) as base group."""
+    # Z² (rank-2 free abelian) as base group.
     name = "Z2"
     
     def one(self):
@@ -88,7 +85,7 @@ class Z2BaseAdapter:
 
 
 class AbelianProductAdapter:
-    """Finite abelian product Z/m1 × Z/m2 × ... as base group."""
+    # Finite abelian product Z/m1 × Z/m2 × ... as base group.
     name = "AbelianProduct"
     
     def __init__(self, moduli):
@@ -110,7 +107,7 @@ class AbelianProductAdapter:
         return f"({','.join(map(str, a))})"
     
     def default_increments(self):
-        """One increment per factor."""
+        # One increment per factor.
         result = []
         for i, m in enumerate(self.moduli):
             name = chr(ord('a') + i)
@@ -126,7 +123,7 @@ class AbelianProductAdapter:
 
 
 class DinfBaseAdapter:
-    """D∞ (infinite dihedral) as base group."""
+    # D∞ (infinite dihedral) as base group.
     name = "Dinf"
     
     def one(self):
@@ -166,7 +163,7 @@ class DinfBaseAdapter:
 
 
 class DnBaseAdapter:
-    """Dn (finite dihedral) as base group."""
+    # Dn (finite dihedral) as base group.
     name = "Dn"
     
     def __init__(self, n):
@@ -209,7 +206,7 @@ class DnBaseAdapter:
 
 
 class FreeBaseAdapter:
-    """Free group Free(k) as base group."""
+    # Free group Free(k) as base group.
     name = "Free"
     
     def __init__(self, k):
@@ -254,8 +251,8 @@ class FreeBaseAdapter:
         return result
 
 
-def get_base_adapter(spec: str):
-    """Parse base group spec and return adapter."""
+def get_base_adapter(spec):
+    # Parse base group spec and return adapter.
     spec = spec.strip()
     
     if spec == "Z":
@@ -278,5 +275,6 @@ def get_base_adapter(spec: str):
     elif spec.startswith("Free(") and spec.endswith(")"):
         k = int(spec[5:-1])
         return FreeBaseAdapter(k)
-    else:
-        raise ValueError(f"Unknown base group spec: {spec}")
+    
+    print(f"Unknown spec: {spec}")
+    return Z2BaseAdapter()  # default

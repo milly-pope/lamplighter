@@ -1,9 +1,6 @@
 def numbered_choice(prompt, choices):
-    """
-    Display numbered choices and return the selected index.
-    choices is a list of strings.
-    Returns int index or None if user quits.
-    """
+    # Display numbered choices and return the selected index
+    # choices is a list of strings, returns int index or None if user quits
     print(f"\n{prompt}")
     for i, choice in enumerate(choices, 1):
         print(f"  {i}) {choice}")
@@ -13,17 +10,14 @@ def numbered_choice(prompt, choices):
         resp = input("\nChoice: ").strip().lower()
         if resp == 'q':
             return None
-        try:
-            idx = int(resp) - 1
-            if 0 <= idx < len(choices):
-                return idx
-        except ValueError:
-            pass
+        idx = int(resp) - 1
+        if 0 <= idx < len(choices):
+            return idx
         print("Invalid choice. Try again.")
 
 
 def ask_int(prompt, default=None):
-    """Ask for an integer with optional default."""
+    # Ask for an integer with optional default
     if default is not None:
         full_prompt = f"{prompt} [{default}]: "
     else:
@@ -33,14 +27,11 @@ def ask_int(prompt, default=None):
         resp = input(full_prompt).strip()
         if not resp and default is not None:
             return default
-        try:
-            return int(resp)
-        except ValueError:
-            print("Please enter a valid integer.")
+        return int(resp)
 
 
 def ask_list_of_ints(prompt, default=None):
-    """Ask for comma-separated list of integers."""
+    # Ask for comma-separated list of integers
     if default is not None:
         default_str = ",".join(map(str, default))
         full_prompt = f"{prompt} [{default_str}]: "
@@ -51,15 +42,12 @@ def ask_list_of_ints(prompt, default=None):
         resp = input(full_prompt).strip()
         if not resp and default is not None:
             return default
-        try:
-            parts = [p.strip() for p in resp.split(',')]
-            return [int(p) for p in parts if p]
-        except ValueError:
-            print("Please enter comma-separated integers.")
+        parts = [p.strip() for p in resp.split(',')]
+        return [int(p) for p in parts if p]
 
 
 def ask_yes_no(prompt, default=True):
-    """Ask yes/no question."""
+    # Ask yes/no question
     suffix = " [Y/n]: " if default else " [y/N]: "
     while True:
         resp = input(prompt + suffix).strip().lower()
@@ -73,7 +61,7 @@ def ask_yes_no(prompt, default=True):
 
 
 def ask_choice(prompt, choices, default=None):
-    """Ask user to pick from a list of string choices."""
+    # Ask user to pick from a list of string choices
     choice_str = "/".join(choices)
     if default:
         full_prompt = f"{prompt} [{choice_str}, default={default}]: "
@@ -90,7 +78,7 @@ def ask_choice(prompt, choices, default=None):
 
 
 def print_header(title, lines=None):
-    """Print a header with title and optional description lines."""
+    # Print a header with title and optional description lines
     print("\n" + "=" * 60)
     print(f"  {title}")
     print("=" * 60)

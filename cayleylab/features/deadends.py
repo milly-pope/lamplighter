@@ -1,41 +1,16 @@
-"""
-Dead-end element detection for Cayley graphs.
-
-Mathematical definition:
-- Dead-end element: g at distance R where ∀ s∈S, |g·s| ≤ |g|
-  (no one-step edge from g leaves the ball B_R)
-- Dead-end depth: smallest k ≥ 1 such that ∃ word w of length k with |g·w| ≥ R+1
-"""
+# Dead-end element detection for Cayley graphs
+# Mathematical definition:
+# - Dead-end element: g at distance R where ∀ s∈S, |g·s| ≤ |g|
+#   (no one-step edge from g leaves the ball B_R)
+# - Dead-end depth: smallest k ≥ 1 such that ∃ word w of length k with |g·w| ≥ R+1
 
 from collections import deque
 from ..core.bfs import transitions_from
 
 
 def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
-    """
-    Scan S_R (sphere at radius R) for dead ends and compute their depth.
-    
-    Args:
-        group: Group object
-        gens: List of generator objects
-        labels: Generator names (list)
-        R: Target radius to analyze
-        depth_cap: Maximum depth to search for escape paths
-        V: Vertex list (states) from BFS
-        dist: Distance array from BFS
-        visited: Dict mapping state → vertex id
-    
-    Returns:
-        Dict with keys:
-            - 'R': int (radius analyzed)
-            - 'depth_cap': int
-            - 'boundary_count': int (|S_R|)
-            - 'dead_ends': list of dicts with:
-                - 'vid': vertex id
-                - 'pretty': pretty-printed state
-                - 'depth': int or str (e.g., ">=7")
-                - 'witness': list of generator names or None
-    """
+    # Scan S_R (sphere at radius R) for dead ends and compute their depth
+    # Returns dict with results and examples
     # Find all vertices on sphere S_R
     boundary = [vid for vid in range(len(V)) if dist[vid] == R]
     
@@ -75,14 +50,8 @@ def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
 
 
 def _compute_depth(start_vid, V, dist, visited, gens, labels, R, depth_cap):
-    """
-    Local BFS from dead-end vertex to find minimal depth to escape ball B_R.
-    
-    Returns:
-        (depth, witness_word) where:
-            depth: int if found within cap, else str ">=cap+1"
-            witness_word: list of generator names or None
-    """
+    # Local BFS from dead-end vertex to find minimal depth to escape ball B_R
+    # Returns: (depth, witness_word) where depth is int if found within cap, else ">=cap+1"
     start_state = V[start_vid]
     
     # BFS queue: (state, path_length, path_labels)
@@ -114,13 +83,8 @@ def _compute_depth(start_vid, V, dist, visited, gens, labels, R, depth_cap):
 
 
 def print_dead_end_results(results, max_examples=10):
-    """
-    Print dead-end analysis results to terminal.
-    
-    Args:
-        results: Dict from analyze_dead_ends()
-        max_examples: Maximum number of examples to show (0 = all)
-    """
+    # Print dead-end analysis results to terminal
+    # max_examples: Maximum number of examples to show (0 = all)
     R = results['R']
     depth_cap = results['depth_cap']
     boundary_count = results['boundary_count']
