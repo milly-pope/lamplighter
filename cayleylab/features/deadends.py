@@ -5,7 +5,6 @@
 # - Dead-end depth: smallest k ≥ 1 such that ∃ word w of length k with |g·w| ≥ R+1
 
 from collections import deque
-from ..core.bfs import transitions_from
 
 
 def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
@@ -20,7 +19,8 @@ def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
         state = V[vid]
         has_outward = False
         
-        for gen_idx, next_state in transitions_from(gens, state):
+        for gi, g in enumerate(gens):
+            next_state = g.apply(state)
             if next_state in visited:
                 next_vid = visited[next_state]
                 if dist[next_vid] == R + 1:
@@ -72,7 +72,8 @@ def _compute_depth(start_vid, V, dist, visited, gens, labels, R, depth_cap):
             continue
         
         # Explore neighbors
-        for gen_idx, next_state in transitions_from(gens, state):
+        for gi, g in enumerate(gens):
+            next_state = g.apply(state)
             if next_state not in local_visited:
                 local_visited.add(next_state)
                 new_path = path + [labels[gen_idx]]

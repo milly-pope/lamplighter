@@ -53,9 +53,3 @@ def build_ball(group, gens, radius):
     labels = [g.name for g in gens]
     return (V, E, dist, labels, words)
 
-
-def transitions_from(gens, state):
-    # Yield (gen_idx, next_state) for each generator applied to state
-    for i, g in enumerate(gens):
-        yield i, g.apply(state)
-

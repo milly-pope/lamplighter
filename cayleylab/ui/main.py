@@ -1,5 +1,4 @@
 import sys
-from ..groups.base import all_groups
 from ..core.bfs import build_ball
 from ..core.export import write_dot, write_png, display_graph
 from .screens import (
@@ -10,10 +9,21 @@ from .screens import (
 
 def main_menu():
     # Top-level menu: select a group
-    # Ensure groups are registered
-    import cayleylab.groups
+    from ..groups.Z2 import Z2
+    from ..groups.Dinf import Dinf
+    from ..groups.free import FreeGroup
+    from ..groups.lamplighter import Lamplighter
+    from ..groups.lamplighter_z2 import LamplighterZ2
+    from ..groups.wreath import WreathProduct
     
-    groups = all_groups()
+    groups = [
+        Z2(),
+        Dinf(),
+        FreeGroup(),
+        Lamplighter(),
+        LamplighterZ2(),
+        WreathProduct()
+    ]
     group_names = [g.name for g in groups]
     
     print_header("CayleyLab", [

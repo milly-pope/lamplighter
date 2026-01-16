@@ -41,8 +41,3 @@ class Z2:
     def pretty(self, s):
         x, y = s
         return f"p=({x},{y})"
-
-
-# Register this group
-from .base import register
-register(Z2())

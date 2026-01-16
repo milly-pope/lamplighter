@@ -1,38 +1,24 @@
-# How to Use: Find Dead-End Elements
+# Dead-End Elements Usage
 
 ## Quick Start
 
-Launch the interactive menu:
 ```bash
 python -m cayleylab
 ```
 
-Then navigate:
-- **For Lamplighter**: Select `3) Lamplighter` → `4) Find dead-end elements`
-- **For Wreath**: Select `6) Wreath` → `4) Find dead-end elements`
+Navigate to:
+- Lamplighter → Find dead-end elements
+- Wreath → Find dead-end elements
 
 ## What It Does
 
-Finds elements on sphere S_R that are "trapped" — all one-step moves either:
-- Stay at the same distance, or
-- Move closer to the identity
+Finds elements at radius R where all generator moves either stay at distance R or move closer to identity.
 
-For each trapped element, computes the minimal number of steps needed to escape.
+For each dead-end, computes minimum steps needed to escape to radius R+1.
 
-## Example Sessions
-
-### Lamplighter (Z/2 wr Z)
+## Example: Lamplighter (Z/2 ≀ Z)
 
 ```
-============================================================
-  Lamplighter - Find Dead-End Elements
-============================================================
-
-Dead-end elements relative to the current generator set S:
-v at distance R is a dead end if no one-step move increases distance (|v s| ≤ |v| for all s ∈ S).
-Depth(v) is the smallest k ≥ 1 with a length-k word that exits B_R.
-We build to radius R + depth_cap to certify detection and depth.
-
 Block pattern [default: 2]: 2
 Step mode (unit/block) [default: unit]: unit
 Toggle offsets [default: 0]: 0
@@ -52,28 +38,16 @@ Depth range among dead ends: 3 .. 3
 
 Showing 1 of 1 dead end(s):
 [vid=194] d=7  depth=3  state=p=0|-1:1;0:1;1:1  witness=t t t
-
-Press Enter to continue...
 ```
 
 **Interpretation**: 
-- Layer 7 has 123 elements total
-- Found 1 dead-end: three consecutive lamps lit, head at position 0
-- Needs 3 steps to escape (witness word: `t t t`)
-- This is the canonical lamplighter dead-end!
+- Layer 7 has 123 elements
+- Found 1 dead-end (three lamps lit, head at center)
+- Needs 3 steps to escape (move right 3 times: `t t t`)
 
-### Wreath Product (Z/2 wr Z/5)
+## Example: Wreath (Z/2 ≀ Z/5)
 
 ```
-============================================================
-  Wreath - Find Dead-End Elements
-============================================================
-
-Dead-end elements relative to the current generator set S:
-v at distance R is a dead end if no one-step move increases distance (|v s| ≤ |v| for all s ∈ S).
-Depth(v) is the smallest k ≥ 1 with a length-k word that exits B_R.
-We build to radius R + depth_cap to certify detection and depth.
-
 Enter spec (C wr D): Z/2 wr Z/5
 Offsets (comma-separated, default 'e'): e
 
@@ -81,128 +55,68 @@ Generators: t, T, a
 
 Radius R to analyze [default: 7]: 4
 Depth cap (max search depth) [default: 6]: 6
-How many examples to show (0 = all) [default: 10]: 5
 
 Building ball to radius 10...
-Analyzing dead ends on layer 4...
 
 Layer size |S_4| = 16
 Dead ends found: 0
-No dead ends found on layer 4.
-
-Press Enter to continue...
 ```
 
-**Interpretation**:
-- Layer 4 has 16 elements
-- No dead-ends at this radius
-- Feature works correctly on finite groups
+No dead-ends at radius 4 for this finite group.
 
-## Parameters Explained
+## Parameters
 
-### R (Radius)
-Which sphere to analyze. Dead-ends are detected on S_R specifically.
-- Larger R → more elements to check, more computation
-- Lamplighter typically has dead-ends starting around R=5-7
+**R (Radius)**: Which sphere to analyze
+- Larger R → more computation
+- Lamplighter has dead-ends starting around R=5-7
 
-### Depth Cap
-Maximum steps to search when computing escape depth.
-- If escape path longer than cap → reports "≥{cap+1}"
-- Default 6 is usually sufficient
-- Increase if you see many "≥7" results
+**Depth Cap**: Maximum escape distance to search
+- Default 6 usually sufficient
+- If escape longer than cap, reports "≥{cap+1}"
 
-### Max Examples
-How many dead-ends to display.
-- `0` = show all
-- `10` = show first 10 (default)
-- Useful when many dead-ends found
+**Max Examples**: How many to display (0 = all)
 
 ## Output Format
 
 ```
-Layer size |S_R| = 123              ← Total elements at distance R
-Dead ends found: 1                  ← How many are trapped
-Depth range among dead ends: 3 .. 3 ← Min/max escape depths
-
-Showing 1 of 1 dead end(s):
-[vid=194]                           ← Vertex ID in the graph
-d=7                                 ← Distance from identity
-depth=3                             ← Steps needed to escape
-state=p=0|-1:1;0:1;1:1              ← Pretty-printed state
-witness=t t t                       ← Generator sequence to escape
+[vid=194]              ← Vertex ID
+d=7                    ← Distance from identity
+depth=3                ← Steps to escape
+state=p=0|-1:1;0:1;1:1 ← State representation
+witness=t t t          ← Escape sequence
 ```
 
 ## Mathematical Background
 
-A **dead-end element** g at distance R has the property that every generator move either:
-1. Keeps you at distance R: |g·s| = R
-2. Decreases distance: |g·s| < R
+**Dead-end element** g at distance R: every generator s satisfies |g·s| ≤ R
 
-The **depth** is the shortest word that increases distance:
-- depth=1: Some single generator s with |g·s| = R+1 (not a dead-end!)
-- depth=2: Need 2 moves to get to R+1
-- depth=3: Need 3 moves to get to R+1
-- depth≥k: Exceeds our search cap
+**Depth**: Shortest word length to reach R+1 from g
+- depth=1: Not a dead-end (some s gives |g·s| = R+1)
+- depth≥2: Actual dead-end
 
-## Typical Use Cases
+## Use Cases
 
-### Research Questions
-- "Does my group have dead-ends at radius R?"
-- "What's the depth distribution of dead-ends?"
-- "How does the dead-end count grow with R?"
+**Research**: "Does my group have dead-ends at radius R?"
 
-### Verification
-- Check canonical examples (e.g., lamplighter at R=7)
-- Compare different generator sets
-- Test theoretical predictions
+**Verification**: Check canonical examples (lamplighter at R=7 has one)
 
-### Exploration
-- Find interesting elements in new groups
-- Understand local geometry of Cayley graphs
-- Discover patterns in wreath products
+**Exploration**: Find interesting elements in new groups
 
 ## Tips
 
-1. **Start small**: Test at low R (3-5) first, then increase
-2. **Use depth_cap wisely**: Default 6 works for most cases
-3. **Check boundary size**: |S_R| shown first — if huge, consider smaller R
-4. **No artifacts**: Unlike other modes, this doesn't create files
-5. **Group configuration**: Uses same generator setup as other modes
-
-## Technical Notes
-
-- **Single BFS**: Builds to R + depth_cap once (efficient)
-- **Bounded search**: Won't run forever even with infinite groups
-- **Exact distances**: Uses actual BFS distances, not estimates
-- **Witness words**: Shows actual generator sequence to escape
-- **No duplicates**: Each dead-end reported once
+- Start small: Test at R=3-5 first
+- Default depth cap (6) works for most cases
+- Check |S_R| first - if huge, use smaller R
+- No files created (unlike export modes)
 
 ## Supported Groups
 
-✓ **Lamplighter** (Z/2 wr Z)
-  - Configure: pattern, step mode, offsets
-  - Example: pattern=[2], step_mode='unit', offsets=[0]
+**Lamplighter** (Z/2 ≀ Z): Configure pattern, step mode, offsets
 
-✓ **Wreath** (C wr D for any supported C, D)
-  - Configure: spec string, offsets
-  - Examples: 
-    - "Z/2 wr Z/5"
-    - "Free(2) wr Z"
-    - "Z/3 wr Dn(4)"
-    - "abelian([2,3]) wr Z2"
+**Wreath** (C ≀ D): Specify using spec strings like "Z/2 wr Z/5", "Free(2) wr Z"
 
 ## Known Results
 
-### Lamplighter L₂ = Z/2 wr Z
-- **R=7**: Canonical dead-end at `p=0|-1:1;0:1;1:1` (depth 3)
-- Pattern: Three consecutive lamps lit, head centered
-- Witness: `t t t` (move right 3 times)
-
-### Finite Groups (e.g., Z/2 wr Z/n)
-- May or may not have dead-ends depending on R and n
-- When they exist, usually at larger radii
-- Depth can exceed cap more frequently
-
----
-
-For implementation details, see `DEADENDS_IMPLEMENTATION.md`
+**Lamplighter L₂ = Z/2 ≀ Z at R=7**:
+- One dead-end: `p=0|-1:1;0:1;1:1` (three lamps lit, head centered)
+- Depth 3, witness: `t t t`

@@ -46,8 +46,3 @@ class Dinf:
     def pretty(self, s):
         k, e = s
         return f"k={k}|eps={e}"
-
-
-# Register this group
-from .base import register
-register(Dinf())

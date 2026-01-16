@@ -80,8 +80,3 @@ class LamplighterZ2:
             return f"({px},{py})"
         lamps = ";".join(f"({i},{j}):{v}" for (i, j), v in tape)
         return f"({px},{py})|{lamps}"
-
-
-# Register this group
-from .base import register
-register(LamplighterZ2())

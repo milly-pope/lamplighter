@@ -57,8 +57,3 @@ class FreeGroup:
         if not s:
             return "e"
         return "".join(s)
-
-
-# Register this group
-from .base import register
-register(FreeGroup())

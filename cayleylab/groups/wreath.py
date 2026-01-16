@@ -203,8 +203,3 @@ class WreathProduct:
             "offsets": [self.top.pretty(o) for o in self.offsets]
         }
 
-
-# Register the wreath product group
-from ..groups.base import register
-register(WreathProduct())
-

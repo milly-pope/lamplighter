@@ -23,6 +23,8 @@ def encode_state(p, tape_dict, modulus_at):
 class Toggle:
     # Toggle generator: modifies tape at a specific offset
     def __init__(self, name, offset, delta, pattern):
+        self.name = name
+        self.offset = offset
         self.delta = delta
         self.pattern = pattern
         self.modulus_at = make_modulus_func(pattern)
@@ -112,11 +114,6 @@ class Lamplighter:
             return f"p={p}"
         body = ";".join(f"{i}:{v}" for (i, v) in tape)
         return f"p={p}|{body}"
-
-
-# Register this group
-from .base import register
-register(Lamplighter())
 
 
 def dead_end_scan(group, gens, labels, R, depth_cap, bfs_build):
