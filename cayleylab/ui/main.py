@@ -53,10 +53,10 @@ def group_menu(group):
             "State = (k, eps). Every element is r^m or r^m s."
         ],
         "Lamplighter": [
-            "Lamplighter group over Z.",
-            "State = (p, tape). pattern=[m0,...,m_{B-1}].",
-            "Step mode = unit (±1) or block (±B).",
-            "Toggles a,b,c act at offsets 0,1,2; uppercase are inverse toggles at mod>2 sites."
+            "Lamplighter group: wreath product C ≀ Z.",
+            "Specify base group C (e.g., Z/2, Z/3, Z/2,Z/3).",
+            "State = (p, tape) where p ∈ Z is head position.",
+            "Generators: t, T (move head) + a, b, ... (toggle lamps)"
         ],
         "Wreath": [
             "Wreath product C ≀ D = C^(D) ⋊ D with finite support.",
@@ -105,19 +105,20 @@ def build_mode(group):
         configured = group
         gens = configured.default_generators()
     elif group.name == "Lamplighter":
-        pattern = ask_list_of_ints("Block pattern (comma-separated ints)", default=[2])
-        step_mode = ask_choice("Step mode", ["unit", "block"], default="unit")
-        max_offset = len(pattern) - 1
-        print(f"Offsets range from 0 to {max_offset} (a={0}, b={1}, c={2}, ...)")
-        offsets = ask_list_of_ints("Toggle offsets to expose", default=[0])
+        print("Enter base group (examples: Z/2, Z/3, Z/4)")
+        print("For product bases, use commas: Z/2,Z/3")
+        base_spec = input("Base group [Z/2]: ").strip() or "Z/2"
         
-        # Validate offsets
-        offsets = [o for o in offsets if 0 <= o < len(pattern)]
+        print("Offsets for toggle generators (comma-separated, 0 = at head)")
+        offsets_input = input("Toggle offsets [0]: ").strip() or "0"
+        offsets = [int(x.strip()) for x in offsets_input.split(',')]
+        
+        # Convert base_spec to wreath product spec
+        spec = f"{base_spec} wr Z"
         
         configured = group.parse_options({
-            "pattern": pattern,
-            "step_mode": step_mode,
-            "offsets": offsets
+            "spec": spec,
+            "offsets": [str(o) for o in offsets]
         })
         gens = configured.default_generators()
     elif group.name == "Wreath":
