@@ -101,8 +101,12 @@ def build_mode(group):
     print_header(f"{group.name} - Build Ball")
     
     # Parse group-specific options
-    if group.name in ("Z^2", "D∞", "C₂ ≀ Z²", "F_2 (Free Group)"):
+    if group.name in ("Z^2", "D∞", "C₂ ≀ Z²"):
         configured = group
+        gens = configured.default_generators()
+    elif group.name.startswith("F_"):
+        rank = ask_int("\nRank of free group", default=2, min_val=1)
+        configured = group.parse_options({"rank": rank})
         gens = configured.default_generators()
     elif group.name == "Lamplighter":
         print("Enter base group (examples: Z/2, Z/3, Z/4)")
@@ -221,8 +225,12 @@ def growth_mode(group):
     print_header(f"{group.name} - Growth Analysis")
     
     # Parse group-specific options
-    if group.name in ("Z^2", "D∞", "C₂ ≀ Z²", "F_2 (Free Group)"):
+    if group.name in ("Z^2", "D∞", "C₂ ≀ Z²"):
         configured = group
+        gens = configured.default_generators()
+    elif group.name.startswith("F_"):
+        rank = ask_int("\nRank of free group", default=2, min_val=1)
+        configured = group.parse_options({"rank": rank})
         gens = configured.default_generators()
     elif group.name == "Wreath":
         print("\nWreath product C ≀ D")
