@@ -172,12 +172,12 @@ class WreathProduct:
         )
     
     def pretty(self, state):
-        # Format state as d=<top> | addr:val; ...
+        # Format state as <top> | addr:val; ...
         d, tape_tuple = state
         d_str = self.top.pretty(d)
         
         if not tape_tuple:
-            return f"d={d_str}"
+            return d_str
         
         tape_parts = []
         for addr, val in tape_tuple:
@@ -186,7 +186,7 @@ class WreathProduct:
             tape_parts.append(f"{addr_str}:{val_str}")
         
         tape_str = ";".join(tape_parts)
-        return f"d={d_str}|{tape_str}"
+        return f"{d_str}|{tape_str}"
     
     def get_metadata(self):
         # Return metadata dict for export

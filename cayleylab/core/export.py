@@ -163,7 +163,11 @@ def write_dot(V, E, dist, labels, words, group, path):
         lines.append('  edge [fontsize=8, color=gray, arrowsize=0.6];')
         
         for i in range(len(V)):
-            label = escape(words[i])
+            # For wreath products, show actual state (head+tape), not just the word
+            if hasattr(group, 'spec_str') and 'wr' in getattr(group, 'spec_str', ''):
+                label = escape(group.pretty(V[i]))
+            else:
+                label = escape(words[i])
             lines.append(f'  v{i} [label="{label}"];')
     
     for u, v, gi in E:
