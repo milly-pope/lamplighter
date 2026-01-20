@@ -1,10 +1,100 @@
 import sys
 from ..core.bfs import build_ball
 from ..core.export import write_dot, write_png, display_graph
-from .screens import (
-    numbered_choice, ask_int, ask_list_of_ints,
-    ask_yes_no, ask_choice, print_header
-)
+
+
+def numbered_choice(prompt, choices):
+    print(f"\n{prompt}")
+    for i, choice in enumerate(choices, 1):
+        print(f"  {i}) {choice}")
+    print("  q) Quit")
+    
+    while True:
+        resp = input("\nChoice: ").strip().lower()
+        if resp == 'q':
+            return None
+        idx = int(resp) - 1
+        if 0 <= idx < len(choices):
+            return idx
+        print("Invalid choice. Try again.")
+
+
+def ask_int(prompt, default=None):
+    if default is not None:
+        full_prompt = f"{prompt} [{default}]: "
+    else:
+        full_prompt = f"{prompt}: "
+    
+    while True:
+        resp = input(full_prompt).strip()
+        if not resp and default is not None:
+            return default
+        return int(resp)
+
+
+def ask_list_of_ints(prompt, default=None):
+    if default is not None:
+        default_str = ",".join(map(str, default))
+        full_prompt = f"{prompt} [{default_str}]: "
+    else:
+        full_prompt = f"{prompt}: "
+    
+    while True:
+        resp = input(full_prompt).strip()
+        if not resp and default is not None:
+            return default
+        parts = [p.strip() for p in resp.split(',')]
+        return [int(p) for p in parts if p]
+
+
+def ask_yes_no(prompt, default=True):
+    suffix = " [Y/n]: " if default else " [y/N]: "
+    while True:
+        resp = input(prompt + suffix).strip().lower()
+        if not resp:
+            return default
+        if resp in ('y', 'yes'):
+            return True
+        if resp in ('n', 'no'):
+            return False
+        print("Please enter y or n.")
+
+
+def ask_choice(prompt, choices, default=None):
+    choice_str = "/".join(choices)
+    if default:
+        full_prompt = f"{prompt} [{choice_str}, default={default}]: "
+    else:
+        full_prompt = f"{prompt} [{choice_str}]: "
+    
+    while True:
+        resp = input(full_prompt).strip().lower()
+        if not resp and default:
+            return default
+        if resp in choices:
+            return resp
+        print(f"Please enter one of: {choice_str}")
+
+
+def print_header(title, lines=None):
+    print("\n" + "=" * 60)
+    print(f"  {title}")
+    print("=" * 60)
+    if lines:
+        for line in lines:
+            print(f"  {line}")
+        print()
+
+
+def layer_sizes(dist):
+    # Count vertices at each distance
+    if not dist:
+        return []
+    max_dist = max(dist)
+    counts = [0] * (max_dist + 1)
+    for d in dist:
+        counts[d] += 1
+    return counts
 
 
 def main_menu():
@@ -416,7 +506,6 @@ def dead_end_mode(group):
     
     gens = configured.default_generators()
     gen_names = [g.name for g in gens]
-    labels = gen_names
     
     print(f"\nGenerators: {', '.join(gen_names)}")
     
@@ -425,22 +514,12 @@ def dead_end_mode(group):
     depth_cap = ask_int("Depth cap (max search depth)", default=6)
     max_examples = ask_int("How many examples to show (0 = all)", default=10)
     
-    # Run analysis
-    from ..core.bfs import build_ball
+    # Build ball and analyze
+    V, E, dist, label_list, words = build_ball(configured, gens, radius=R)
+    visited = {V[i]: i for i in range(len(V))}
     
-    if group.name == "Lamplighter":
-        from ..groups.lamplighter import run_dead_end_mode_lamplighter
-        results = run_dead_end_mode_lamplighter(configured, gens, labels, R, depth_cap, build_ball)
-    elif group.name == "Wreath":
-        from ..groups.wreath import run_dead_end_mode_wreath
-        results = run_dead_end_mode_wreath(configured, gens, labels, R, depth_cap, build_ball)
-    else:
-        print("Dead-end detection not yet implemented for this group.")
-        input("\nPress Enter to continue...")
-        return
-    
-    # Print results
-    from ..features.deadends import print_dead_end_results
+    from ..features.deadends import analyze_dead_ends, print_dead_end_results
+    results = analyze_dead_ends(configured, gens, gen_names, R, depth_cap, V, dist, visited)
     print_dead_end_results(results, max_examples)
     
     input("\nPress Enter to continue...")
