@@ -1,26 +1,26 @@
 # Dead-end element detection for Cayley graphs
-# Definition: g at distance R is a dead-end if all generators keep it at distance ≤ R
-# (no one-step edge from g leaves the ball B_R)
+# Definition: v at distance r is a dead-end if all generators keep it at distance ≤ r
+# (no one-step edge from v increases distance)
 
 
 def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
-    # Find dead-end elements on sphere S_R
+    # Find dead-end elements in ball B_R
+    # A vertex at distance r is a dead-end if all neighbors have distance ≤ r
     # Returns dict with results
     
-    # Find all vertices on sphere S_R
-    boundary = [vid for vid in range(len(V)) if dist[vid] == R]
-    
-    # Detect dead ends: check if ANY generator takes us beyond R
+    # Check ALL vertices in the ball, not just the frontier
     dead_end_vids = []
-    for vid in boundary:
+    for vid in range(len(V)):
         state = V[vid]
+        r = dist[vid]
         has_escape = False
         
+        # Check if any generator increases distance
         for g in gens:
             next_state = g.apply(state)
             if next_state in visited:
                 next_vid = visited[next_state]
-                if dist[next_vid] > R:
+                if dist[next_vid] > r:
                     has_escape = True
                     break
         
@@ -32,12 +32,13 @@ def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
     for vid in dead_end_vids:
         dead_ends.append({
             'vid': vid,
+            'distance': dist[vid],
             'pretty': group.pretty(V[vid])
         })
     
     return {
         'R': R,
-        'boundary_count': len(boundary),
+        'ball_size': len(V),
         'dead_ends': dead_ends
     }
 
@@ -45,10 +46,10 @@ def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
 def print_dead_end_results(results, max_examples=10):
     # Print dead-end analysis results
     R = results['R']
-    boundary_count = results['boundary_count']
+    ball_size = results['ball_size']
     dead_ends = results['dead_ends']
     
-    print(f"\nLayer size |S_{R}| = {boundary_count}")
+    print(f"\nBall size |B_{R}| = {ball_size}")
     print(f"Dead ends found: {len(dead_ends)}")
     
     if dead_ends:
@@ -58,7 +59,8 @@ def print_dead_end_results(results, max_examples=10):
         
         for de in dead_ends[:num_to_show]:
             vid = de['vid']
+            r = de['distance']
             state = de['pretty']
-            print(f"[vid={vid}] distance={R}  state={state}")
+            print(f"[vid={vid}] distance={r}  state={state}")
     else:
-        print(f"No dead ends found on layer {R}.")
+        print(f"No dead ends found in ball B_{R}.")
