@@ -60,8 +60,13 @@ def write_png(V, E, dist, labels, words, group, path):
     nx.draw_networkx_nodes(G, pos, node_size=node_size, node_color='lightblue', 
                           edgecolors='black', linewidths=2)
     
-    # Node labels
-    node_labels = {i: words[i] for i in range(len(V))}
+    # Node labels - use words for lamplighters, states for general wreath products
+    if hasattr(group, 'is_lamplighter') and group.is_lamplighter:
+        node_labels = {i: words[i] for i in range(len(V))}
+    elif hasattr(group, 'spec_str') and 'wr' in getattr(group, 'spec_str', ''):
+        node_labels = {i: group.pretty(V[i]) for i in range(len(V))}
+    else:
+        node_labels = {i: words[i] for i in range(len(V))}
     font_size = max(8, 12 - len(V) / 30)
     nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=font_size, font_weight='bold')
     
@@ -163,8 +168,13 @@ def write_dot(V, E, dist, labels, words, group, path):
         lines.append('  edge [fontsize=8, color=gray, arrowsize=0.6];')
         
         for i in range(len(V)):
-            # For wreath products, show actual state (head+tape), not just the word
-            if hasattr(group, 'spec_str') and 'wr' in getattr(group, 'spec_str', ''):
+            # For lamplighters, show words (unique representation on Z)
+            # For general wreath products, show state (tape) to avoid ambiguity
+            if hasattr(group, 'is_lamplighter') and group.is_lamplighter:
+                # Lamplighter: words uniquely represent states on Z
+                label = escape(words[i])
+            elif hasattr(group, 'spec_str') and 'wr' in getattr(group, 'spec_str', ''):
+                # General wreath product: show actual state (head+tape)
                 label = escape(group.pretty(V[i]))
             else:
                 label = escape(words[i])

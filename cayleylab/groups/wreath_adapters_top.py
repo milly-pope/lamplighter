@@ -282,6 +282,9 @@ def get_top_adapter(spec):
     elif spec.startswith("Z/"):
         n = int(spec[2:])
         return ZmodAdapter(n)
+    elif spec in ['2Z', '3Z', '4Z', '5Z', '6Z'] or (spec.endswith('Z') and spec[0].isdigit() and len(spec) <= 3):
+        # Walking on subgroup nZ - just use Z adapter (the offsets will handle blocks)
+        return ZAdapter()
     elif spec == "Dinf":
         return DinfAdapter()
     elif spec.startswith("Dn(") and spec.endswith(")"):

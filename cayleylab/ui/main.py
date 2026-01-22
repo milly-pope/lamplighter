@@ -33,6 +33,34 @@ def print_header(title, lines=None):
         print()
 
 
+def select_generators(configured):
+    """Allow user to select custom generating set or use defaults."""
+    all_gens = configured.default_generators()
+    print(f"\nDefault generators: {', '.join(g.name for g in all_gens)}")
+    
+    customize = input("Use custom generating set? [y/N]: ").strip().lower()
+    if customize == 'y':
+        print("\nAvailable generators:")
+        for i, g in enumerate(all_gens):
+            print(f"  {i+1}) {g.name}")
+        
+        selection = input("Enter generator numbers (comma-separated) or 'all' [all]: ").strip()
+        if selection and selection.lower() != 'all':
+            try:
+                indices = [int(x.strip())-1 for x in selection.split(',')]
+                gens = [all_gens[i] for i in indices if 0 <= i < len(all_gens)]
+                if gens:
+                    print(f"Using generators: {', '.join(g.name for g in gens)}")
+                    return gens
+                else:
+                    print("Invalid selection, using all generators")
+            except (ValueError, IndexError):
+                print("Invalid selection, using all generators")
+        return all_gens
+    else:
+        return all_gens
+
+
 def configure_group(group):
     # Common group configuration logic
     if group.name in ("Z^2", "D∞"):
@@ -42,19 +70,73 @@ def configure_group(group):
         rank = int(rank_str) if rank_str else 2
         return group.parse_options({"rank": rank})
     elif group.name == "Lamplighter":
-        base = input("Base group (Z/2, Z/3, Z/2,Z/3) [Z/2]: ").strip() or "Z/2"
-        offsets = input("Toggle offsets [0]: ").strip() or "0"
-        return group.parse_options({
-            "spec": f"{base} wr Z",
-            "offsets": [s.strip() for s in offsets.split(',')]
-        })
+        print("\nExamples:")
+        print("  Z/2 wr Z       → binary lamps on all of Z")
+        print("  Z/3 wr Z       → 3-state lamps on all of Z")
+        print("  Z/2 wr 2Z      → binary lamps, walk in steps of 2")
+        print("  Z/2,Z/3 wr 2Z  → different lamp at each position (a²=e, b³=e)")
+        print("  Z/2,Z/3,Z/4 wr 3Z → 3 different lamps (a²=e, b³=e, c⁴=e)")
+        
+        # Ask for walking group first (determines block structure)
+        walking = input("\nWalking group D [Z]: ").strip() or "Z"
+        
+        # Determine if blocks are needed based on walking group
+        num_blocks = None
+        if walking.lower() != 'z' and walking.lower().endswith('z'):
+            # Walking on nZ creates n blocks
+            try:
+                n = int(walking[:-1]) if walking[:-1] else 1
+                if n > 1:
+                    num_blocks = n
+                    print(f"\nWalking on {n}Z creates {n} positions")
+                    print(f"You can specify:")
+                    print(f"  • Same lamp at all {n} positions: e.g., 'Z/2'")
+                    print(f"  • Different lamp at each position: e.g., 'Z/2,Z/3{',Z/4' if n > 2 else ''}'")
+            except ValueError:
+                pass
+        
+        # Now ask for lamp specification
+        base = input("Lamp group(s) C [Z/2]: ").strip() or "Z/2"
+        
+        # Validate block count if needed
+        if ',' in base:
+            lamp_count = len(base.split(','))
+            print(f"\nUsing {lamp_count} different lamp types at positions {list(range(lamp_count))}")
+            
+            if num_blocks is not None and lamp_count != num_blocks:
+                print(f"\n⚠️  Warning: Walking on {walking} creates {num_blocks} positions.")
+                print(f"    You specified {lamp_count} lamp types. They should match!")
+                proceed = input("    Continue anyway? (y/n) [n]: ").strip().lower()
+                if proceed != 'y':
+                    return None
+        elif num_blocks is not None:
+            print(f"\nUsing same lamp type at all {num_blocks} positions")
+            print(f"This creates generators: t (walk), a, b, c, ... (one per position)")
+        
+        # Build spec and configure
+        # Note: This generates default generators based on the spec
+        # Advanced users can specify custom generators via parse_options
+        opts = {"spec": f"{base} wr {walking}"}
+        
+        try:
+            return group.parse_options(opts)
+        except ValueError as e:
+            print(f"\n❌ Invalid specification: {e}")
+            print("\nPlease check your input and try again.")
+            return None
+        except Exception as e:
+            print(f"\nError: {e}")
+            return None
     elif group.name == "Wreath":
-        spec = input("Spec (C wr D) [Z/2 wr Z]: ").strip() or "Z/2 wr Z"
-        offsets = input("Offsets [e]: ").strip() or "e"
-        return group.parse_options({
-            "spec": spec,
-            "offsets": [s.strip() for s in offsets.split(',')]
-        })
+        print("\nExamples:")
+        print("  Z/2 wr Z         → classic lamplighter")
+        print("  Z/2 wr 2Z        → binary lamps, walk in steps of 2")
+        print("  Z/2 wr Z2        → 2D lamplighter")
+        print("  Z/3 wr Z         → 3-state lamps on Z")
+        print("  Z/2 wr Dinf      → lamps on infinite dihedral")
+        print("  Z/2 wr Free(2)   → lamps on free group F₂")
+        spec = input("\nWreath product (C wr D) [Z/2 wr Z]: ").strip() or "Z/2 wr Z"
+        return group.parse_options({"spec": spec})
     return group
 
 
@@ -74,18 +156,19 @@ def main_menu():
     ]
     group_names = [g.name for g in groups]
     
-    print_header("CayleyLab", [
-        "Interactive Cayley Graph Explorer",
-        "Choose a group to explore"
-    ])
-    
-    idx = numbered_choice("Select a group:", group_names)
-    if idx is None:
-        print("Goodbye!")
-        return
-    
-    group = groups[idx]
-    group_menu(group)
+    while True:
+        print_header("CayleyLab", [
+            "Interactive Cayley Graph Explorer",
+            "Choose a group to explore"
+        ])
+        
+        idx = numbered_choice("Select a group:", group_names)
+        if idx is None:
+            print("Goodbye!")
+            return
+        
+        group = groups[idx]
+        group_menu(group)
 
 
 def group_menu(group):
@@ -93,29 +176,69 @@ def group_menu(group):
     # Show group-specific header
     headers = {
         "Z^2": [
-            "Z^2 with generators {±e1, ±e2}.",
-            "State = (x,y). Distance is L1 in these generators."
+            "Z^2 with generators x, X, y, Y .",
+            "State = (x,y). "
         ],
         "D∞": [
             "D∞ = Z ⋊ Z/2 with generators r, R, s.",
             "State = (k, eps). Every element is r^m or r^m s."
         ],
         "Lamplighter": [
-            "Lamplighter group: wreath product C ≀ Z.",
-            "Specify base group C (e.g., Z/2, Z/3, Z/2,Z/3).",
-            "State = (p, tape) where p ∈ Z is head position.",
-            "Generators: t, T (move head) + a, b, ... (toggle lamps)"
+            "Lamplighter group C ≀ D (wreath product)",
+            "",
+            "Mathematical structure:",
+            "  C = lamp/fiber group (finite cyclic or multiple lamps)",
+            "  D = walking group (Z or subgroup like 2Z, 3Z)",
+            "",
+            "Standard configurations:",
+            "  • Z/2 ≀ Z: binary lamps, walk on all integers",
+            "  • Z/3 ≀ Z: 3-state lamps, walk on all integers",
+            "",
+            "Walking subgroups create blocks (Ex 2.2):",
+            "  • Z/2 ≀ 2Z: walk in steps of 2, creates 2 blocks",
+            "    - Generators: t (move by 2), a (offset 0), b (offset +1)",
+            "",
+            "Different lamp types per position:",
+            "  • Z/2,Z/3 ≀ 2Z: different lamp at each of 2 positions",
+            "    - Position 0: Z/2 lamp (a² = e)",
+            "    - Position 1: Z/3 lamp (b³ = e)",
+            "  • Z/2,Z/3,Z/4 ≀ 3Z: 3 different lamps at 3 positions",
+            "    - Generators: t, a (Z/2), b (Z/3), c (Z/4)",
+            "",
+            "Standard generators:",
+            "  • t, T: move on walking group D",
+            "  • a, b, c, ...: toggle lamps (order depends on lamp type)",
+            "",
+            "State = (position, tape) where tape has finite support"
         ],
         "Wreath": [
-            "Wreath product C ≀ D = C^(D) ⋊ D with finite support.",
-            "Supported: Z, Z/n, Z2, D∞, Dn(n), Free(k), abelian([m1,...]).",
-            "State = (d, tape) where d ∈ D and tape: D → C with finite support.",
+            "General wreath product C ≀ D = C^(D) ⋊ D",
             "",
-            "Generator conventions:",
-            "  Cyclic (Z, Z/n): t, T for moves | a, A, b, ... for toggles",
-            "  Grid (Z²): x, X, y, Y for moves | a, A, b, B for toggles",
-            "  Dihedral (D∞, Dn): r, R, s for moves | a, A, b for toggles",
-            "  Free(k): a, A, b, B, ... for moves | a, A, b, B, ... for toggles"
+            "Mathematical structure:",
+            "  C = lamp/fiber group (finite cyclic: Z/2, Z/3, ...)",
+            "  D = walking group or subgroup",
+            "",
+            "Supported lamp groups C:",
+            "  • Z/n: single lamp type with n states",
+            "",
+            "Supported walking groups D:",
+            "  • Z: integers (classic lamplighter)",
+            "  • 2Z, 3Z, nZ: subgroups (creates n blocks)",
+            "  • Z2: integer lattice Z² (2D lamplighter)",
+            "  • Dinf: infinite dihedral D∞",
+            "  • Dn(n): dihedral Dn (e.g., Dn(5))",
+            "  • Free(k): free group Fₖ",
+            "  • abelian([m1,m2,...]): finitely generated abelian",
+            "",
+            "Walking subgroups:",
+            "  • nZ creates n blocks, need n offsets [0,1,...,n-1]",
+            "  • Generators: a, b, c, ... for each block",
+            "",
+            "Standard generators:",
+            "  • D's generators (for movement)",
+            "  • C's generators at each offset (for toggling)",
+            "",
+            "State = (d, tape) where d ∈ D, tape: D → C (finite support)"
         ]
     }
     
@@ -123,7 +246,7 @@ def group_menu(group):
         print_header(group.name, headers.get(group.name, []))
         
         modes = [
-            "Build a radius-n ball (PNG/DOT export)",
+            "Build a radius-n ball and export graph",
             "Analyze growth rate",
             "Evaluate word (multiply generators, find distance)",
             "Find dead-end elements",
@@ -148,10 +271,13 @@ def build_mode(group):
     print_header(f"{group.name} - Build Ball")
     
     configured = configure_group(group)
-    gens = configured.default_generators()
-    print(f"Generators: {', '.join(g.name for g in gens)}")
+    if configured is None:
+        return
     
-    radius_str = input("Radius [3]: ").strip()
+    # Select generators (default or custom)
+    gens = select_generators(configured)
+    
+    radius_str = input("\nRadius: ").strip()
     radius = int(radius_str) if radius_str else 3
     
     print("Building ball...")
@@ -187,10 +313,13 @@ def growth_mode(group):
     print_header(f"{group.name} - Growth Analysis")
     
     configured = configure_group(group)
-    gens = configured.default_generators()
-    print(f"Generators: {', '.join(g.name for g in gens)}")
+    if configured is None:
+        return
     
-    max_r_str = input("Maximum radius [10]: ").strip()
+    # Select generators
+    gens = select_generators(configured)
+    
+    max_r_str = input("\nMaximum radius [10]: ").strip()
     max_r = int(max_r_str) if max_r_str else 10
     
     print(f"Computing balls for radii 0..{max_r}...")
@@ -205,7 +334,11 @@ def evaluate_mode(group):
     print_header(f"{group.name} - Evaluate Word")
     
     configured = configure_group(group)
-    gens = configured.default_generators()
+    if configured is None:
+        return
+    
+    # Select generators
+    gens = select_generators(configured)
     gen_map = {g.name: g for g in gens}
     
     print(f"Generators: {', '.join(gen_map.keys())}")
@@ -240,10 +373,13 @@ def dead_end_mode(group):
     print("v at distance r is a dead end if all neighbors have distance ≤ r.")
     
     configured = configure_group(group)
-    gens = configured.default_generators()
-    print(f"Generators: {', '.join(g.name for g in gens)}")
+    if configured is None:
+        return
     
-    R_str = input("Radius [7]: ").strip()
+    # Select generators
+    gens = select_generators(configured)
+    
+    R_str = input("\nRadius: ").strip()
     R = int(R_str) if R_str else 7
     
     V, E, dist, labels, words = build_ball(configured, gens, R)

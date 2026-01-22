@@ -8,7 +8,7 @@ def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
     # A vertex at distance r is a dead-end if all neighbors have distance ≤ r
     # Returns dict with results
     
-    # Check ALL vertices in the ball, not just the frontier
+    # Check ALL vertices in the ball
     dead_end_vids = []
     for vid in range(len(V)):
         state = V[vid]
@@ -18,11 +18,13 @@ def analyze_dead_ends(group, gens, labels, R, depth_cap, V, dist, visited):
         # Check if any generator increases distance
         for g in gens:
             next_state = g.apply(state)
-            if next_state in visited:
-                next_vid = visited[next_state]
-                if dist[next_vid] > r:
-                    has_escape = True
-                    break
+            # Escape if: (1) outside ball, or (2) farther in ball
+            if next_state not in visited:
+                has_escape = True  # Outside ball = escape
+                break
+            elif dist[visited[next_state]] > r:
+                has_escape = True  # Farther in ball = escape
+                break
         
         if not has_escape:
             dead_end_vids.append(vid)

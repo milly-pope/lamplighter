@@ -1,19 +1,21 @@
-# Lamplighter group - wreath product Z/m ≀ Z
-# This is a user-friendly wrapper around the general wreath product
+# Lamplighter group - wreath product C ≀ Z
+# Standard definition: C is finite (lamp group), Z is the walking group
+
 
 from .wreath import WreathProduct
 
 
 class Lamplighter:
-    # Lamplighter group over Z with configurable base
+    # Lamplighter group C ≀ Z with configurable lamp group C
     # Just a thin wrapper around WreathProduct for convenience
     name = "Lamplighter"
     
     def __init__(self, spec="Z/2 wr Z", offsets=None):
         # Create underlying wreath product
         self.wreath = WreathProduct()
+        self.wreath.is_lamplighter = True  # Mark for word-based visualization
         self.spec = spec
-        self.offsets = offsets or ['e']
+        self.offsets = offsets
         self._configured = None
     
     def identity(self):
@@ -23,10 +25,10 @@ class Lamplighter:
     
     def _configure(self):
         # Configure the underlying wreath product
-        self._configured = self.wreath.parse_options({
-            'spec': self.spec,
-            'offsets': self.offsets
-        })
+        opts = {'spec': self.spec}
+        if self.offsets is not None:
+            opts['offsets'] = self.offsets
+        self._configured = self.wreath.parse_options(opts)
     
     def default_generators(self):
         if not self._configured:
@@ -36,12 +38,12 @@ class Lamplighter:
     def parse_options(self, opts):
         # Parse user input
         spec = opts.get("spec", "Z/2 wr Z")
-        offsets = opts.get("offsets", ['e'])
+        offsets = opts.get("offsets", None)
         
         # Create and configure new instance
         lamp = Lamplighter(spec=spec, offsets=offsets)
         lamp._configure()
-        return lamp._configured  # Return configured wreath product
+        return lamp._configured  
     
     def pretty(self, s):
         if not self._configured:
@@ -50,8 +52,6 @@ class Lamplighter:
 
 
 def dead_end_scan(group, gens, labels, R, depth_cap, bfs_build):
-    # Builds to R + depth_cap, analyzes dead ends, and prints results
-    # No JSON/PNG artifacts generated
     from ..features.deadends import analyze_dead_ends, print_dead_end_results
     
     # Build ball to R + depth_cap
