@@ -25,6 +25,20 @@ def canonicalize_tape(tape_dict, top_adapter, base_adapter):
     return tuple(items)
 
 
+class CompositeGen:
+    # Generator that is a composition of primitive generators
+    def __init__(self, name, primitive_gens):
+        self.name = name
+        self.primitive_gens = primitive_gens  # List of generators to apply in order
+    
+    def apply(self, state):
+        # Apply each primitive generator in sequence
+        result = state
+        for gen in self.primitive_gens:
+            result = gen.apply(result)
+        return result
+
+
 class MoveGen:
     # Generator that moves in the top group D
     def __init__(self, name, d_elem, top_adapter, base_adapter):

@@ -34,30 +34,74 @@ def print_header(title, lines=None):
 
 
 def select_generators(configured):
-    """Allow user to select custom generating set or use defaults."""
+    """Allow user to select subset of default generators, or create composite generators."""
     all_gens = configured.default_generators()
     print(f"\nDefault generators: {', '.join(g.name for g in all_gens)}")
     
-    customize = input("Use custom generating set? [y/N]: ").strip().lower()
-    if customize == 'y':
-        print("\nAvailable generators:")
+    print("\nOptions:")
+    print("  1) Use all default generators")
+    print("  2) Select subset of defaults")
+    print("  3) Create composite generators (e.g., 'tat', 'tt')")
+    
+    choice = input("\nChoice [1]: ").strip() or "1"
+    
+    if choice == "2":
+        # Select subset
+        print("\nSelect which primitive generators to include:")
         for i, g in enumerate(all_gens):
             print(f"  {i+1}) {g.name}")
         
-        selection = input("Enter generator numbers (comma-separated) or 'all' [all]: ").strip()
+        selection = input("Enter numbers (comma-separated) or 'all' [all]: ").strip()
         if selection and selection.lower() != 'all':
             try:
                 indices = [int(x.strip())-1 for x in selection.split(',')]
                 gens = [all_gens[i] for i in indices if 0 <= i < len(all_gens)]
                 if gens:
-                    print(f"Using generators: {', '.join(g.name for g in gens)}")
+                    print(f"Using: {', '.join(g.name for g in gens)}")
                     return gens
                 else:
-                    print("Invalid selection, using all generators")
+                    print("Invalid selection, using all")
             except (ValueError, IndexError):
-                print("Invalid selection, using all generators")
+                print("Invalid selection, using all")
         return all_gens
+    
+    elif choice == "3":
+        # Create composite generators
+        from ..groups.wreath import CompositeGen
+        
+        gen_map = {g.name: g for g in all_gens}
+        print(f"\nAvailable primitives: {', '.join(gen_map.keys())}")
+        print("Define composite generators as words (space-separated)")
+        print("Examples: 't a t', 't t', 'a t a T'")
+        print("Enter one per line, empty line to finish:")
+        
+        composites = []
+        while True:
+            line = input(f"  Generator {len(composites)+1}: ").strip()
+            if not line:
+                break
+            
+            # Parse the word
+            word_parts = line.split()
+            try:
+                primitive_sequence = [gen_map[p] for p in word_parts]
+                # Create composite name (concatenate)
+                comp_name = ''.join(word_parts)
+                composites.append(CompositeGen(comp_name, primitive_sequence))
+                print(f"    Created: {comp_name}")
+            except KeyError as e:
+                print(f"    Error: Unknown generator {e}")
+                continue
+        
+        if composites:
+            print(f"\nUsing composite generators: {', '.join(g.name for g in composites)}")
+            return composites
+        else:
+            print("No composites defined, using all defaults")
+            return all_gens
+    
     else:
+        # Use all defaults
         return all_gens
 
 
