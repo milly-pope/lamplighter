@@ -2,7 +2,6 @@ import sys
 import os
 from ..core.bfs import build_ball
 from ..core.export import write_dot, write_png, display_graph
-from ..core.growth import compute_growth, classify_growth, format_growth_table
 
 
 def numbered_choice(prompt, choices):
@@ -366,10 +365,36 @@ def growth_mode(group):
     max_r_str = input("\nMaximum radius [10]: ").strip()
     max_r = int(max_r_str) if max_r_str else 10
     
-    print(f"Computing balls for radii 0..{max_r}...")
-    results = compute_growth(configured, gens, max_r)
-    growth_type = classify_growth(results)
-    print(format_growth_table(results, growth_type))
+    # Ask for mode
+    print("\nAnalysis mode:")
+    print("  1) Auto (use exact method if available)")
+    print("  2) Investigate (examine convergence, optional plot)")
+    print("  3) Estimate (choose radius r, get ω = σ_r^(1/r))")
+    print("  4) Exact (require exact formula)")
+    mode_choice = input("Choice [1]: ").strip() or "1"
+    
+    mode_map = {"1": "auto", "2": "investigate", "3": "estimate", "4": "exact"}
+    mode = mode_map.get(mode_choice, "auto")
+    
+    estimate_r = None
+    show_plot = False
+    
+    if mode == "estimate":
+        r_str = input(f"Choose radius r for estimate [default={max_r}]: ").strip()
+        estimate_r = int(r_str) if r_str else max_r
+    
+    if mode == "investigate":
+        plot_choice = input("Show convergence plot? (y/n) [n]: ").strip().lower()
+        show_plot = (plot_choice == 'y')
+    
+    print(f"\nComputing growth profile for radii 0..{max_r}...")
+    from ..core.growth import analyze_growth, format_growth_table
+    
+    try:
+        result = analyze_growth(configured, gens, max_r, mode=mode, estimate_r=estimate_r)
+        print(format_growth_table(result, show_plot=show_plot))
+    except ValueError as e:
+        print(f"\nError: {e}")
     
     input("\nPress Enter to continue...")
 
