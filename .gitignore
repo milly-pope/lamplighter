@@ -3,3 +3,7 @@ lamplighter-main.zip
 *.zip # optional, if you never want zips tracked
 
 lamplighter-main.zip
+
+lamplighter-main.zip
+graphs/
+.venv/
