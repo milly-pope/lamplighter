@@ -1,9 +1,22 @@
 # Growth analysis for Cayley graphs
-# For exact groups: compute exact ω
-# For others: investigate convergence or estimate at chosen radius
 
 from .bfs import build_ball
 import math
+
+
+def format_series(coeffs):
+    # Turn list of coefficients into polynomial string
+    terms = []
+    for r, c in enumerate(coeffs):
+        if c == 0:
+            continue
+        if r == 0:
+            terms.append(str(c))
+        elif r == 1:
+            terms.append(f"{c} z" if c > 1 else "z")
+        else:
+            terms.append(f"{c} z^{r}" if c > 1 else f"z^{r}")
+    return " + ".join(terms) if terms else "0"
 
 
 def classify_growth(omega, poly_deg=None):
@@ -69,16 +82,7 @@ def detect_exact_method(group):
 
 
 def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_param=None, 
-                   automaton_matrix=None, estimate_r=None):
-    """
-    Analyze growth for a group.
-    
-    Modes:
-    - "auto": Try exact method if available, else investigative
-    - "exact": Use exact formula (F_r, Z^d, D∞, automaton)
-    - "investigate": Show full root sequence for user to examine
-    - "estimate": Use σ_r^(1/r) at user-specified r as ω estimate
-    """
+                   automaton_matrix=None, estimate_r=None, show_series=False):
     # Compute σ_r and b_r up to radius N
     sigma_list = []
     b_list = []
@@ -163,7 +167,7 @@ def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_para
             "classification": "investigate"
         }
     
-    return {
+    result = {
         "sigma": sigma_list,
         "b": b_list,
         "omega": omega_result,
@@ -171,6 +175,16 @@ def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_para
         "poly_degree": poly_deg,
         "mode": mode
     }
+    
+    # Add series if requested
+    if show_series:
+        result["S_series"] = format_series(sigma_list)
+        result["B_series"] = format_series(b_list)
+        # Check identity: b_r should equal sum of sigma up to r
+        identity_ok = all(b_list[r] == sum(sigma_list[:r+1]) for r in range(len(b_list)))
+        result["series_identity_ok"] = identity_ok
+    
+    return result
 
 
 def plot_convergence(roots, omega_exact=None):
@@ -204,7 +218,6 @@ def format_growth_table(result, show_plot=False):
     omega_info = result["omega"]
     roots = result["roots"]
     poly_deg = result["poly_degree"]
-    mode = result.get("mode", "auto")
     
     lines = []
     lines.append("\nGrowth Analysis:")
@@ -217,6 +230,15 @@ def format_growth_table(result, show_plot=False):
         lines.append(f"{r:<5} {sigma[r]:<12} {b[r]:<12} {root_str:<15}")
     
     lines.append("=" * 60)
+    
+    # Series if included
+    if "S_series" in result:
+        lines.append("")
+        lines.append(f"S(z) = {result['S_series']}")
+        lines.append(f"B(z) = {result['B_series']}")
+        check = "OK" if result.get("series_identity_ok") else "FAILED"
+        lines.append(f"Check B(z) = S(z)/(1-z): {check}")
+    
     lines.append("")
     
     if omega_info["kind"] == "exact":
@@ -225,7 +247,7 @@ def format_growth_table(result, show_plot=False):
         lines.append(f"  {omega_info['source']}")
     elif omega_info["kind"] == "estimate":
         lines.append(f"Growth: {omega_info['classification']}")
-        lines.append(f"  ω ≈ {omega_info['value']:.6f} (estimated at r={result['sigma'].index(max([s for i,s in enumerate(result['sigma']) if i > 0 and i <= len(roots) and abs(roots[i-1] - omega_info['value']) < 0.0001], default=0))})")
+        lines.append(f"  ω ≈ {omega_info['value']:.6f}")
         lines.append(f"  Source: {omega_info['source']}")
     else:
         lines.append("Growth: investigative mode")

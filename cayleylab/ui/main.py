@@ -35,6 +35,12 @@ def print_header(title, lines=None):
 def select_generators(configured):
     """Allow user to select subset of default generators, or create composite generators."""
     all_gens = configured.default_generators()
+    
+    # For Z_Offsets, just use all generators (they're automatically paired with inverses)
+    if configured.name == "Z":
+        print(f"\nGenerators: {', '.join(g.name for g in all_gens)}")
+        return all_gens
+    
     print(f"\nDefault generators: {', '.join(g.name for g in all_gens)}")
     
     print("\nOptions:")
@@ -108,6 +114,27 @@ def configure_group(group):
     # Common group configuration logic
     if group.name in ("Z^2", "D∞"):
         return group
+    elif group.name == "Z":
+        print("\nZ with custom generator offsets")
+        print("\nEach generator acts by adding its offset to the current integer.")
+        print("Specify generators as: name=offset (e.g., a=3, b=2)")
+        print("Inverses are added automatically (A=-a, B=-b, etc.)")
+        
+        offsets_str = input("\nGenerator offsets [a=1]: ").strip() or "a=1"
+        
+        # Parse offsets: "a=3, b=2" → {'a': 3, 'b': 2}
+        offsets = {}
+        try:
+            for part in offsets_str.split(','):
+                part = part.strip()
+                if '=' in part:
+                    name, val = part.split('=')
+                    offsets[name.strip().lower()] = int(val.strip())
+        except:
+            print("Invalid format. Using default: a=1")
+            offsets = {'a': 1}
+        
+        return group.parse_options({"offsets": offsets})
     elif group.name.startswith("F_"):
         rank_str = input("Rank of free group [2]: ").strip()
         rank = int(rank_str) if rank_str else 2
@@ -189,13 +216,15 @@ def main_menu():
     from ..groups.free import FreeGroup
     from ..groups.lamplighter import Lamplighter
     from ..groups.wreath import WreathProduct
+    from ..groups.Z_offsets import Z_Offsets
     
     groups = [
         Z2(),
         Dinf(),
         FreeGroup(),
         Lamplighter(),
-        WreathProduct()
+        WreathProduct(),
+        Z_Offsets()
     ]
     group_names = [g.name for g in groups]
     
@@ -362,8 +391,8 @@ def growth_mode(group):
     # Select generators
     gens = select_generators(configured)
     
-    max_r_str = input("\nMaximum radius [10]: ").strip()
-    max_r = int(max_r_str) if max_r_str else 10
+    max_r_str = input("\nRadius to compute [20]: ").strip()
+    max_r = int(max_r_str) if max_r_str else 20
     
     # Ask for mode
     print("\nAnalysis mode:")
@@ -378,6 +407,7 @@ def growth_mode(group):
     
     estimate_r = None
     show_plot = False
+    show_series = False
     
     if mode == "estimate":
         r_str = input(f"Choose radius r for estimate [default={max_r}]: ").strip()
@@ -386,12 +416,15 @@ def growth_mode(group):
     if mode == "investigate":
         plot_choice = input("Show convergence plot? (y/n) [n]: ").strip().lower()
         show_plot = (plot_choice == 'y')
+        series_choice = input("Show generating series S(z) and B(z)? (y/n) [n]: ").strip().lower()
+        show_series = (series_choice == 'y')
     
     print(f"\nComputing growth profile for radii 0..{max_r}...")
     from ..core.growth import analyze_growth, format_growth_table
     
     try:
-        result = analyze_growth(configured, gens, max_r, mode=mode, estimate_r=estimate_r)
+        result = analyze_growth(configured, gens, max_r, mode=mode, estimate_r=estimate_r, 
+                              show_series=show_series)
         print(format_growth_table(result, show_plot=show_plot))
     except ValueError as e:
         print(f"\nError: {e}")
