@@ -13,7 +13,7 @@ def analyze_Z_offsets(offsets, N, label=""):
     print(f"\n{desc}")
     print("=" * 60)
     
-    result = analyze_growth(group, gens, N, mode="investigate", show_series=True)
+    result = analyze_growth(group, gens, N, mode="auto", show_series=True)
     print(format_growth_table(result))
     
     return result

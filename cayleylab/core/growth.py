@@ -19,19 +19,63 @@ def format_series(coeffs):
     return " + ".join(terms) if terms else "0"
 
 
+def estimate_asymptote(roots, tail_length=10):
+    """
+    Estimate ω by fitting σ_r^(1/r) = ω + A/r to the last tail_length values.
+    Uses linear regression with y = σ_r^(1/r), x = 1/r.
+    Returns (omega_estimate, A_coefficient) or None if insufficient data.
+    """
+    if len(roots) < tail_length:
+        return None
+    
+    # Use last tail_length values
+    tail_start = len(roots) - tail_length
+    y_vals = roots[tail_start:]
+    r_vals = list(range(tail_start + 1, len(roots) + 1))  # r values (1-indexed)
+    x_vals = [1.0/r for r in r_vals]  # x = 1/r
+    
+    # Linear regression: y = ω + A·x
+    n = len(x_vals)
+    sum_x = sum(x_vals)
+    sum_y = sum(y_vals)
+    sum_xx = sum(x*x for x in x_vals)
+    sum_xy = sum(x*y for x, y in zip(x_vals, y_vals))
+    
+    # Solve for slope A and intercept ω
+    denom = n * sum_xx - sum_x * sum_x
+    if abs(denom) < 1e-10:
+        return None
+    
+    A = (n * sum_xy - sum_x * sum_y) / denom
+    omega = (sum_y - A * sum_x) / n
+    
+    return (omega, A)
+
+
 def classify_growth(omega, poly_deg=None):
-    """Classify growth type based on omega"""
+    """
+    Classify growth type based on ω and polynomial degree.
+    
+    Per dissertation Definition 6.1:
+    - exponential growth if ω > 1
+    - subexponential growth if ω = 1
+      - polynomial growth if β(k) ≼ k^d for some d
+      - intermediate growth otherwise
+    """
     if omega is None:
         return "unknown"
     
-    if abs(omega - 1.0) < 0.01:
-        if poly_deg:
+    if omega > 1.0 + 0.01:
+        return "exponential"
+    elif abs(omega - 1.0) < 0.01:
+        # Subexponential: ω = 1
+        if poly_deg is not None:
             return f"polynomial (degree ≈ {poly_deg:.1f})"
-        return "polynomial"
-    elif omega > 1.0:
-        return f"exponential (ω = {omega:.4f})"
+        else:
+            return "subexponential (possibly intermediate)"
     else:
-        return f"subexponential (ω = {omega:.4f})"
+        # ω < 1 shouldn't happen mathematically, but handle gracefully
+        return f"anomalous (ω = {omega:.4f})"
 
 
 def exact_free_group(rank):
@@ -43,6 +87,9 @@ def exact_integers(dim):
 
 def exact_dihedral_inf():
     return 1.0, "D∞: same as ℤ, polynomial growth (ω = 1)"
+
+def exact_Z_offsets():
+    return 1.0, "ℤ with offsets: polynomial growth (ω = 1, degree 1)"
 
 def spectral_radius(matrix):
     n = len(matrix)
@@ -77,6 +124,9 @@ def detect_exact_method(group):
     
     if name == "d∞" or name == "dinf":
         return ("Dinf", None)
+    
+    if name == "z" and hasattr(group, 'offsets'):
+        return ("Z_offsets", None)
     
     return (None, None)
 
@@ -115,6 +165,8 @@ def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_para
             omega_exact, exact_source = exact_integers(exact_param or 2)
         elif exact_kind == "Dinf":
             omega_exact, exact_source = exact_dihedral_inf()
+        elif exact_kind == "Z_offsets":
+            omega_exact, exact_source = exact_Z_offsets()
         elif exact_kind == "automaton" and automaton_matrix:
             omega_exact, exact_source = exact_automaton(automaton_matrix)
     
@@ -143,6 +195,13 @@ def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_para
             denom = n*sxx - sx*sx
             if abs(denom) > 1e-10:
                 poly_deg = (n*sxy - sx*sy) / denom
+    
+    # Asymptotic estimate from tail fitting (for investigative/auto modes)
+    asymptote = None
+    if len(roots) >= 10 and (mode == "investigate" or mode == "auto"):
+        fit_result = estimate_asymptote(roots)
+        if fit_result:
+            asymptote = {"omega": fit_result[0], "A": fit_result[1]}
     
     # Package result
     if omega_exact:
@@ -173,7 +232,8 @@ def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_para
         "omega": omega_result,
         "roots": roots,
         "poly_degree": poly_deg,
-        "mode": mode
+        "mode": mode,
+        "asymptote": asymptote
     }
     
     # Add series if requested
@@ -187,7 +247,7 @@ def analyze_growth(group, gens, radius, mode="auto", exact_kind=None, exact_para
     return result
 
 
-def plot_convergence(roots, omega_exact=None):
+def plot_convergence(roots, omega_exact=None, asymptote=None):
     """Plot convergence of r-th roots"""
     try:
         import matplotlib.pyplot as plt
@@ -203,6 +263,11 @@ def plot_convergence(roots, omega_exact=None):
     if omega_exact:
         plt.axhline(y=omega_exact, color='r', linestyle='--', label=f'ω (exact) = {omega_exact:.4f}')
     
+    if asymptote:
+        omega_est = asymptote["omega"]
+        plt.axhline(y=omega_est, color='orange', linestyle=':', linewidth=2, 
+                   label=f'ω (asymptote fit) ≈ {omega_est:.4f}')
+    
     plt.xlabel('radius r', fontsize=12)
     plt.ylabel('σ_r^(1/r)', fontsize=12)
     plt.title('Convergence of r-th roots to growth exponent ω', fontsize=14)
@@ -217,6 +282,7 @@ def format_growth_table(result, show_plot=False):
     b = result["b"]
     omega_info = result["omega"]
     roots = result["roots"]
+    asymptote = result.get("asymptote")
     poly_deg = result["poly_degree"]
     
     lines = []
@@ -253,6 +319,8 @@ def format_growth_table(result, show_plot=False):
         lines.append("Growth: investigative mode")
         lines.append(f"  Examine the σ_r^(1/r) sequence above.")
         lines.append(f"  Values: {' → '.join(f'{r:.3f}' for r in roots[-5:])}")
+        if asymptote:
+            lines.append(f"  Asymptotic estimate: ω ≈ {asymptote['omega']:.6f} (fit to tail)")
         if show_plot:
             lines.append(f"  Plotting convergence graph...")
     
@@ -260,7 +328,7 @@ def format_growth_table(result, show_plot=False):
     
     # Show plot if requested and in investigate mode
     if show_plot and omega_info["kind"] == "investigative":
-        plot_convergence(roots)
+        plot_convergence(roots, asymptote=asymptote)
     elif show_plot and omega_info["kind"] == "exact":
         plot_convergence(roots, omega_info["value"])
     
