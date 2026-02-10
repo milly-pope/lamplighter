@@ -7,7 +7,7 @@ def build_ball(group, gens, radius):
     # Returns (V, E, dist, labels, words).
     
     # Initialize with identity
-    root_state = group.identity()
+    root_state = group.identity() 
     
     V = []  # List of states
     E = []  # List of edges (u, v, gen_index)

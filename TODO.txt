@@ -1,0 +1,5 @@
+
+3- growth size stuff just isnt correct but we can look at that later 
+4- add comments/functionalities or a readme that woudl allow another tudent to come in and add other cuntionalitties/. work for another group 
+5- look at maybe time and space complexity
+6- should i include a related works section
