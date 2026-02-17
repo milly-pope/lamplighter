@@ -141,10 +141,11 @@ def configure_group(group):
         return group.parse_options({"rank": rank})
     elif group.name == "Lamplighter":
         print("\nExamples:")
-        print("  Z/2 wr Z       → binary lamps on all of Z")
-        print("  Z/3 wr Z       → 3-state lamps on all of Z")
-        print("  Z/2 wr 2Z      → binary lamps, walk in steps of 2")
-        print("  Z/2,Z/3 wr 2Z  → different lamp at each position (a²=e, b³=e)")
+        print("  Z/2 wr Z          → binary lamps on all of Z")
+        print("  Z/3 wr Z          → 3-state lamps on all of Z")
+        print("  Z/2 wr 2Z         → binary lamps, walk in steps of 2")
+        print("  Z/2 × Z/2 wr Z/3  → direct product lamps (use × or x)")
+        print("  Z/2,Z/3 wr 2Z     → different lamp at each position (comma syntax)")
         print("  Z/2,Z/3,Z/4 wr 3Z → 3 different lamps (a²=e, b³=e, c⁴=e)")
         
         # Ask for walking group first (determines block structure)
@@ -161,6 +162,7 @@ def configure_group(group):
                     print(f"\nWalking on {n}Z creates {n} positions")
                     print(f"You can specify:")
                     print(f"  • Same lamp at all {n} positions: e.g., 'Z/2'")
+                    print(f"  • Direct product at all positions: e.g., 'Z/2 × Z/3' (or 'Z/2 x Z/3')")
                     print(f"  • Different lamp at each position: e.g., 'Z/2,Z/3{',Z/4' if n > 2 else ''}'")
             except ValueError:
                 pass
@@ -203,6 +205,7 @@ def configure_group(group):
         print("  Z/2 wr 2Z        → binary lamps, walk in steps of 2")
         print("  Z/2 wr Z2        → 2D lamplighter")
         print("  Z/3 wr Z         → 3-state lamps on Z")
+        print("  Z/2 × Z/2 wr Z/3 → direct product lamps (use × or x)")
         print("  Z/2 wr Dinf      → lamps on infinite dihedral")
         print("  Z/2 wr Free(2)   → lamps on free group F₂")
         spec = input("\nWreath product (C wr D) [Z/2 wr Z]: ").strip() or "Z/2 wr Z"

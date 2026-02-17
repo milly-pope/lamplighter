@@ -253,7 +253,25 @@ class FreeBaseAdapter:
 
 def get_base_adapter(spec):
     # Parse base group spec and return adapter.
+    # Supports: Z, Z/n, Z/n × Z/m, Z/n x Z/m, abelian([n,m]), Dinf, Dn(n), Free(k)
     spec = spec.strip()
+    
+    # Check for direct product notation: Z/2 × Z/3 or Z/2 x Z/3
+    if '×' in spec or ' x ' in spec.lower():
+        # Replace × with temporary delimiter and split
+        product_spec = spec.replace('×', '|').replace(' X ', '|').replace(' x ', '|')
+        factors = [f.strip() for f in product_spec.split('|')]
+        
+        # Parse each factor
+        moduli = []
+        for factor in factors:
+            if factor.startswith("Z/"):
+                n = int(factor[2:])
+                moduli.append(n)
+            else:
+                raise ValueError(f"Unsupported factor in direct product: {factor}")
+        
+        return AbelianProductAdapter(moduli)
     
     if spec == "Z":
         return ZBaseAdapter()
